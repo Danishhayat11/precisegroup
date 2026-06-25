@@ -1,0 +1,29 @@
+[
+{
+"Project Code": "MA",
+"Project Name": "Manal Arcade",
+"Location": "B-1 Markaz, B-17 Islamabad",
+"Status": "Completed",
+"Start Date": "2024-01-23",
+"Expected / Completed": "2025-06-25",
+"Notes": "Sold out / delivered ahead of schedule"
+},
+{
+"Project Code": "MH",
+"Project Name": "Manal Heights",
+"Location": "H-13 Islamabad near NUST Gate 6",
+"Status": "Active",
+"Start Date": "2025-04-01",
+"Expected / Completed": "2028-04-01",
+"Notes": "Booking open"
+},
+{
+"Project Code": "XH",
+"Project Name": "Xeros Heights",
+"Location": "Dummy project",
+"Status": "Planning",
+"Start Date": null,
+"Expected / Completed": null,
+"Notes": "Sample project for testing"
+}
+]

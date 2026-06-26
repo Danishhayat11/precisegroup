@@ -1,39 +1,234 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
-import { DataTable, Column } from "@/components/DataTable";
-import { StatusBadge, statusTone } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { fmtDate, fmtPKR } from "@/lib/format";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { CalendarIcon, FileText, Plus, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { PaymentForm, PAYMENT_TYPES } from "@/components/PaymentForm";
+import { PaymentReceipt } from "@/components/PaymentReceipt";
 
 export default function Payments() {
+  const qc = useQueryClient();
+  const [params] = useSearchParams();
+  const bookingFilter = params.get("booking") ?? "";
+
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("All");
+  const [from, setFrom] = useState<string>("");
+  const [to, setTo] = useState<string>("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [receiptNo, setReceiptNo] = useState<string | null>(null);
+
   const { data: rows = [] } = useQuery({
     queryKey: ["payments"],
-    queryFn: async () => (await supabase.from("payments").select("*").order("payment_date", { ascending: false })).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("payments").select("*").order("payment_date", { ascending: false })).data ?? [],
   });
 
-  const total = rows.reduce((s: number, p: any) => s + (Number(p.safe_cash_amount) || 0), 0);
+  const filtered = useMemo(() => {
+    const lq = search.trim().toLowerCase();
+    return rows.filter((p: any) => {
+      if (bookingFilter && p.booking_id !== bookingFilter) return false;
+      if (type !== "All" && (p.payment_mode ?? "") !== type) return false;
+      if (from && (p.payment_date ?? "") < from) return false;
+      if (to && (p.payment_date ?? "") > to) return false;
+      if (!lq) return true;
+      return [p.receipt_no, p.booking_id, p.client_name, p.unit_no, p.cheque_txn_no]
+        .some((v) => String(v ?? "").toLowerCase().includes(lq));
+    });
+  }, [rows, search, type, from, to, bookingFilter]);
 
-  const columns: Column<any>[] = [
-    { key: "rec", header: "Receipt", cell: (r) => <span className="font-mono text-xs text-primary">{r.receipt_no}</span> },
-    { key: "date", header: "Date", cell: (r) => fmtDate(r.payment_date) },
-    { key: "booking", header: "Booking", cell: (r) => <Link to={`/bookings/${r.booking_id}`} className="font-mono text-xs text-primary hover:underline">{r.booking_id}</Link> },
-    { key: "client", header: "Client", cell: (r) => <span className="capitalize">{r.client_name}</span> },
-    { key: "head", header: "Head", cell: (r) => r.payment_head },
-    { key: "mode", header: "Mode", cell: (r) => <StatusBadge label={r.payment_mode ?? "—"} tone={r.payment_mode === "Adjustment" ? "adjustment" : "info"} /> },
-    { key: "amt", header: "Amount", align: "right", cell: (r) => <span className="tabular-nums">{fmtPKR(r.amount)}</span> },
-    { key: "safe", header: "Safe Cash", align: "right", cell: (r) => <span className="tabular-nums">{fmtPKR(r.safe_cash_amount)}</span> },
-    { key: "acct", header: "Account", cell: (r) => <span className="text-xs text-muted-foreground">{r.account}</span> },
-  ];
+  const totals = useMemo(() => {
+    let cash = 0, bank = 0, adj = 0;
+    for (const p of filtered as any[]) {
+      const amt = Number(p.amount || 0);
+      if (p.payment_mode === "Cash") cash += amt;
+      else if (p.payment_mode === "Bank Transfer") bank += amt;
+      else if (p.payment_mode === "Adjustment/Asset" || p.payment_mode === "Adjustment") adj += amt;
+    }
+    return { cash, bank, adj, grand: cash + bank + adj };
+  }, [filtered]);
+
+  const DateBtn = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className={cn("h-9 justify-start text-left font-normal min-w-[140px]", !value && "text-muted-foreground")}>
+          <CalendarIcon className="h-4 w-4 mr-2" />
+          {value ? format(new Date(value), "dd-MMM-yyyy") : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value ? new Date(value) : undefined}
+          onSelect={(d) => onChange(d ? format(d, "yyyy-MM-dd") : "")}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+
+  const typeBadgeTone = (m: string) =>
+    m === "Cash" ? "success" : m === "Bank Transfer" ? "info" : "adjustment";
 
   return (
     <div>
       <PageHeader
         title="Payments"
-        description={`${rows.length} receipts · Total safe cash: ${fmtPKR(total)}`}
+        description={`${rows.length} receipts · Cash & Bank kept separate from Adjustment/Asset`}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> Record payment
+          </Button>
+        }
       />
-      <DataTable rows={rows} columns={columns} rowKey={(r) => r.receipt_no}
-        searchKeys={["receipt_no","booking_id","client_name","payment_head","payment_mode","account"]} />
+
+      {/* Filter bar */}
+      <div className="card-elevated p-3 mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by Receipt, Booking ID, Client, Unit…"
+            className="pl-9 bg-muted/40 border-transparent h-9"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground">Type</Label>
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All</SelectItem>
+              {PAYMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground">From</Label>
+          <DateBtn value={from} onChange={setFrom} placeholder="From date" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground">To</Label>
+          <DateBtn value={to} onChange={setTo} placeholder="To date" />
+        </div>
+        {(from || to || type !== "All" || search || bookingFilter) && (
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setType("All"); setFrom(""); setTo(""); }}>
+            Clear
+          </Button>
+        )}
+        <div className="text-xs text-muted-foreground tabular-nums ml-auto">{filtered.length} of {rows.length}</div>
+      </div>
+
+      {/* Table */}
+      <div className="card-elevated overflow-hidden">
+        <div className="overflow-x-auto max-h-[60vh]">
+          <table className="w-full text-sm table-sticky">
+            <thead className="text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left font-medium px-4 py-2.5 border-b">ID</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Date</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Client</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Unit</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Type</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Head</th>
+                <th className="text-right font-medium px-4 py-2.5 border-b">Amount (PKR)</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Reference</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Receipt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={9} className="text-center text-muted-foreground p-10">No payments match these filters.</td></tr>
+              ) : filtered.map((p: any) => (
+                <tr key={p.receipt_no} className="border-t hover:bg-muted/30">
+                  <td className="px-4 py-2.5 font-mono text-xs text-primary">{p.receipt_no}</td>
+                  <td className="px-4 py-2.5">{fmtDate(p.payment_date)}</td>
+                  <td className="px-4 py-2.5 capitalize">{p.client_name}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs">{p.unit_no}</td>
+                  <td className="px-4 py-2.5">
+                    <StatusBadge label={p.payment_mode ?? "—"} tone={typeBadgeTone(p.payment_mode) as any} />
+                  </td>
+                  <td className="px-4 py-2.5 text-xs">{p.payment_head ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-medium">{fmtPKR(p.amount)}</td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">{p.cheque_txn_no ?? "—"}</td>
+                  <td className="px-4 py-2.5">
+                    <Button size="sm" variant="ghost" className="h-7" onClick={() => setReceiptNo(p.receipt_no)}>
+                      <FileText className="h-3.5 w-3.5 mr-1" /> View
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {/* Summary footer — Cash / Bank / Adjustment shown SEPARATELY */}
+            <tfoot className="bg-muted/40 text-sm font-semibold border-t-2 border-primary/30">
+              <tr>
+                <td colSpan={6} className="px-4 py-3 text-right text-xs uppercase tracking-wide text-muted-foreground">
+                  Totals (filtered)
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums" colSpan={3}>
+                  <div className="grid grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <div className="text-[10px] uppercase text-muted-foreground">Cash</div>
+                      <div className="text-success">{fmtPKR(totals.cash)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase text-muted-foreground">Bank</div>
+                      <div className="text-info">{fmtPKR(totals.bank)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase text-muted-foreground">Adjustment</div>
+                      <div className="text-adjustment">{fmtPKR(totals.adj)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase text-muted-foreground">Grand</div>
+                      <div className="text-primary">{fmtPKR(totals.grand)}</div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Record payment</DialogTitle>
+            <DialogDescription>
+              Cash and Bank Transfer count toward Cash Received. Adjustment/Asset is tracked separately.
+            </DialogDescription>
+          </DialogHeader>
+          <PaymentForm
+            initial={bookingFilter ? { booking_id: bookingFilter } : undefined}
+            onCancel={() => setCreateOpen(false)}
+            onSaved={(no) => {
+              setCreateOpen(false);
+              qc.invalidateQueries({ queryKey: ["payments"] });
+              setReceiptNo(no);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <PaymentReceipt open={!!receiptNo} onOpenChange={(o) => !o && setReceiptNo(null)} receiptNo={receiptNo} />
     </div>
   );
 }

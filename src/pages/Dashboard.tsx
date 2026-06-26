@@ -86,9 +86,10 @@ export default function Dashboard() {
   const kpis = [
     { label: "Total Sell Value", val: fmtPKR(totalSellValue), sub: `${data.bookings.length} bookings`, icon: Building2 },
     { label: "Cash Recovered", val: fmtPKR(cashRecovered), sub: "Cash / bank only — excludes adjustments", icon: Banknote },
-    { label: "Total Adjustment Amount", val: fmtPKR(adjApproved), sub: `${data.adjustments.length} adjustments approved`, icon: Repeat2 },
-    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets realised by company", icon: Coins },
-    { label: "Total Received", val: fmtPKR(totalReceived), sub: `${recoveryPct}% of sell value`, icon: CheckCircle2 },
+    { label: "Total Adjustment Allowed", val: fmtPKR(adjApproved), sub: `Reduces client balance · ${data.adjustments.length} approved`, icon: Repeat2 },
+    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets actually realised by company", icon: Coins },
+    { label: "Company Loss (Adj.)", val: fmtPKR(companyLoss), sub: "Allowed − Realised", icon: TrendingDown },
+    { label: "Total Received", val: fmtPKR(totalReceived), sub: `Cash + Adj. Allowed · ${recoveryPct}% of sell value`, icon: CheckCircle2 },
     { label: "Total Pending Balance", val: fmtPKR(pendingBalance), sub: "Remaining receivable", icon: Wallet },
     { label: "Current Overdue Amount", val: fmtPKR(overdueValue), sub: `${overdueRows.length} overdue installments`, icon: AlertTriangle },
   ] as const;

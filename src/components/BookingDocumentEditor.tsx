@@ -268,6 +268,7 @@ export default function BookingDocumentEditor({
   const baseTemplate = useMemo(() => buildTemplate(type, booking, payments, ledger), [type, booking, payments, ledger]);
   const [text, setText] = useState<string>(baseTemplate);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Load draft (or fall back to template) whenever type changes
   useEffect(() => {

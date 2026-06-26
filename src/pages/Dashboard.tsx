@@ -207,6 +207,21 @@ export default function Dashboard() {
                         {b._risk}
                       </span>
                     </td>
+                    <td className="px-3 py-2.5">
+                      {waUrl ? (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success ring-1 ring-success/30 hover:bg-success/20 px-2.5 py-1 text-xs font-medium transition-colors"
+                          title={`Send WhatsApp to ${b.mobile}`}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No phone</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

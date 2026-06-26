@@ -6,8 +6,8 @@ import {
 } from "@/components/ui/select";
 import { Printer, Save, RotateCcw, FileText } from "lucide-react";
 import { fmtDate, fmtPKR } from "@/lib/format";
-import { printOnLetterhead } from "@/lib/print";
 import { toast } from "sonner";
+import PrintPreviewModal from "@/components/PrintPreviewModal";
 
 type DocType =
   | "Legal Notice"

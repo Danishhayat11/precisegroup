@@ -36,11 +36,16 @@ export default function Dashboard() {
   if (isLoading || !data) return <div className="text-muted-foreground">Loading…</div>;
 
   const today = new Date().toISOString().slice(0, 10);
+  const totalSellValue = data.bookings.reduce((s: number, b: any) => s + (Number(b.sold_unit_value) || 0), 0);
   const totalContract = data.bookings.reduce((s: number, b: any) => s + (Number(b.total_contract_value) || 0), 0);
-  const cashReceived = data.payments.reduce((s: number, p: any) => s + (Number(p.safe_cash_amount) || 0), 0);
-  const adjValue = data.adjustments.reduce((s: number, a: any) => s + (Number(a.approved_value) || 0), 0);
-  const lossInAdj = data.adjustments.reduce((s: number, a: any) => s + (Number(a.company_loss_gain) || 0), 0);
-  const remaining = data.bookings.reduce((s: number, b: any) => s + (Number(b.remaining_balance) || 0), 0);
+  // Cash Recovered: bank/cash receipts only (safe_cash_amount excludes adjustment-mode rows)
+  const cashRecovered = data.payments.reduce((s: number, p: any) => s + (Number(p.safe_cash_amount) || 0), 0);
+  // Adjustment totals from the adjustments register
+  const adjApproved = data.adjustments.reduce((s: number, a: any) => s + (Number(a.approved_value) || 0), 0);
+  const adjRealised = data.adjustments.reduce((s: number, a: any) => s + (Number(a.realized_value) || 0), 0);
+  const totalReceived = cashRecovered + adjRealised;
+  const pendingBalance = data.bookings.reduce((s: number, b: any) => s + (Number(b.remaining_balance) || 0), 0);
+
   const overdueRows = data.ledger.filter((l: any) => {
     const isInstallment = !/down payment|possession/i.test(l.particulars ?? "");
     const due = Number(l.due_amount) || 0;
@@ -48,20 +53,15 @@ export default function Dashboard() {
     return isInstallment && l.due_date && l.due_date < today && due - paid > 0;
   });
   const overdueValue = overdueRows.reduce((s: number, l: any) => s + Math.max((Number(l.due_amount) || 0) - (Number(l.paid_amount) || 0), 0), 0);
-  const pendingRows = data.ledger.filter((l: any) => {
-    const due = Number(l.due_amount) || 0;
-    const paid = Number(l.paid_amount) || 0;
-    return l.due_date && l.due_date >= today && due - paid > 0;
-  });
-  const pendingValue = pendingRows.reduce((s: number, l: any) => s + ((Number(l.due_amount) || 0) - (Number(l.paid_amount) || 0)), 0);
-  const recoveryPct = totalContract > 0 ? Math.round(((cashReceived + adjValue) / totalContract) * 100) : 0;
+
+  const recoveryPct = totalSellValue > 0 ? Math.round((totalReceived / totalSellValue) * 100) : 0;
 
   const unitStatus = data.units.reduce((acc: Record<string, number>, u: any) => {
     acc[u.status ?? "Unknown"] = (acc[u.status ?? "Unknown"] ?? 0) + 1; return acc;
   }, {});
 
   const byProject = data.projects.map((p: any) => {
-    const sold = data.bookings.filter((b: any) => b.project_code === p.project_code).reduce((s: number, b: any) => s + (Number(b.total_contract_value) || 0), 0);
+    const sold = data.bookings.filter((b: any) => b.project_code === p.project_code).reduce((s: number, b: any) => s + (Number(b.sold_unit_value) || 0), 0);
     return { name: p.project_name, sold };
   });
 
@@ -73,20 +73,23 @@ export default function Dashboard() {
     }, {})
   ).map(([name, value]) => ({ name, value: value as number }));
 
-  const watchlist = [...data.bookings]
-    .map((b: any) => ({ ...b, _ov: Number(b.current_overdue_count || 0) }))
-    .filter((b: any) => b._ov > 0 || b.risk_level === "HIGH")
-    .sort((a: any, b: any) => b._ov - a._ov || (Number(b.total_overdue_amount || 0) - Number(a.total_overdue_amount || 0)))
-    .slice(0, 8);
+  // Overdue clients table — HIGH (3+) / MEDIUM (1-2). Skip LOW / zero.
+  const overdueClients = [...data.bookings]
+    .map((b: any) => ({ ...b, _ov: Number(b.current_overdue_count || 0), _amt: Number(b.total_overdue_amount || 0) }))
+    .filter((b: any) => b._ov > 0)
+    .map((b: any) => ({ ...b, _risk: b._ov >= 3 ? "HIGH" : "MEDIUM" }))
+    .sort((a: any, b: any) => b._amt - a._amt);
 
   const kpis = [
-    { label: "Total Contract Value", val: fmtPKR(totalContract), sub: `${data.bookings.length} active bookings`, icon: Building2, tone: "info" },
-    { label: "Cash / Bank Received", val: fmtPKR(cashReceived), sub: `${data.payments.length} receipts`, icon: Banknote, tone: "success" },
-    { label: "Outstanding Receivable", val: fmtPKR(remaining), sub: `${recoveryPct}% recovery to date`, icon: Wallet, tone: "info" },
-    { label: "Overdue Exposure", val: fmtPKR(overdueValue), sub: `${overdueRows.length} overdue lines`, icon: AlertTriangle, tone: "danger" },
-    { label: "Pending Installments", val: fmtPKR(pendingValue), sub: `${pendingRows.length} upcoming`, icon: Receipt, tone: "warning" },
-    { label: "Adjustment Credits", val: fmtPKR(adjValue), sub: `Loss on adj: ${fmtPKR(lossInAdj)}`, icon: lossInAdj > 0 ? TrendingDown : TrendingUp, tone: "adjustment" },
+    { label: "Total Sell Value", val: fmtPKR(totalSellValue), sub: `${data.bookings.length} bookings`, icon: Building2 },
+    { label: "Cash Recovered", val: fmtPKR(cashRecovered), sub: "Cash / bank only — excludes adjustments", icon: Banknote },
+    { label: "Total Adjustment Amount", val: fmtPKR(adjApproved), sub: `${data.adjustments.length} adjustments approved`, icon: Repeat2 },
+    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets realised by company", icon: Coins },
+    { label: "Total Received", val: fmtPKR(totalReceived), sub: `${recoveryPct}% of sell value`, icon: CheckCircle2 },
+    { label: "Total Pending Balance", val: fmtPKR(pendingBalance), sub: "Remaining receivable", icon: Wallet },
+    { label: "Current Overdue Amount", val: fmtPKR(overdueValue), sub: `${overdueRows.length} overdue installments`, icon: AlertTriangle },
   ] as const;
+  void totalContract; // retained for future use
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--adjustment))", "hsl(var(--muted-foreground))"];
 

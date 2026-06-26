@@ -99,7 +99,7 @@ export default function Dashboard() {
         title="Dashboard"
         description="Live KPIs powered by your booking, payment, and installment data."
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
         {kpis.map((k) => (
           <div key={k.label} className="kpi-tile">
             <div className="flex items-center justify-between mb-2">

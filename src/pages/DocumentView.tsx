@@ -159,12 +159,13 @@ export default function DocumentView() {
             </div>
           )}
 
-          <div className="mt-10 text-[10px] text-gray-500 text-center">Generated on {fmtDate(new Date())} · Precise ERP</div>
+          <div className="mt-10 text-[9pt] text-gray-500 text-center">Generated on {fmtDate(new Date())} · Precise ERP</div>
         </div>
       )}
     </div>
   );
 }
+
 
 function Stat({ l, v }: { l: string; v: string }) {
   return <div className="border border-black/15 rounded p-2"><div className="text-[10px] text-gray-500">{l}</div><div className="font-semibold tabular-nums">{v}</div></div>;

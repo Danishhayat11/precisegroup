@@ -183,11 +183,10 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {overdueClients.length === 0 ? (
-                <tr><td colSpan={6} className="text-center text-muted-foreground p-8">No overdue clients — you're current.</td></tr>
+                <tr><td colSpan={7} className="text-center text-muted-foreground p-8">No overdue clients — you're current.</td></tr>
               ) : overdueClients.map((b: any) => {
                 const isHigh = b._risk === "HIGH";
                 const rawPhone = String(b.mobile ?? "").replace(/[^\d]/g, "");
-                // Normalize to international format for wa.me (PK default)
                 const waPhone = rawPhone.startsWith("0")
                   ? "92" + rawPhone.slice(1)
                   : rawPhone.startsWith("92")
@@ -205,7 +204,7 @@ export default function Dashboard() {
                     <td className="px-3 py-2.5 font-mono text-xs">{b.unit_id}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums font-medium">{b._ov}</td>
                     <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${isHigh ? "text-destructive" : "text-warning"}`}>{fmtPKR(b._amt)}</td>
-                    <td className="px-5 py-2.5">
+                    <td className="px-3 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         isHigh
                           ? "bg-destructive/10 text-destructive ring-1 ring-destructive/30"
@@ -229,6 +228,14 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground">No phone</span>
                       )}
                     </td>
+                    <td className="px-5 py-2.5">
+                      <Link
+                        to={`/bookings/${b.booking_id}`}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 text-primary ring-1 ring-primary/30 hover:bg-primary/20 px-2.5 py-1 text-xs font-medium transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </Link>
+                    </td>
                   </tr>
                 );
               })}
@@ -237,7 +244,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
         {Object.entries(unitStatus).map(([k, v]) => (
           <div key={k} className="card-elevated p-4">
@@ -245,6 +251,10 @@ export default function Dashboard() {
             <div className="text-xl font-semibold mt-1">{v as number}</div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 text-right text-[11px] text-muted-foreground">
+        Last updated: {fmtDate(new Date())} · {new Date().toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}
       </div>
     </div>
   );

@@ -74,18 +74,24 @@ export default function DocumentView() {
       {!booking ? (
         <div className="card-elevated p-12 text-center text-muted-foreground">Select a booking to preview.</div>
       ) : (
-        <div className="mx-auto bg-white text-black shadow-[var(--shadow-elegant)] p-10 max-w-[820px] print:shadow-none print:p-0" style={{ minHeight: "1120px" }}>
-          {/* Letterhead */}
-          <div className="flex items-start justify-between border-b-2 border-black pb-4 mb-6">
-            <div>
-              <div className="text-xl font-bold tracking-tight">Precise Realtors & Builders (Pvt.) Ltd.</div>
-              <div className="text-xs text-gray-600">Real Estate Developers · Islamabad, Pakistan</div>
-            </div>
-            <div className="text-right text-xs">
-              <div className="font-semibold uppercase">{title}</div>
-              <div className="text-gray-600">Dated: {fmtDate(new Date())}</div>
-            </div>
+        <div
+          className="mx-auto bg-white text-black shadow-[var(--shadow-elegant)] print:shadow-none letterhead-page"
+          style={{
+            width: "210mm",
+            minHeight: "297mm",
+            backgroundImage: `url('${LETTERHEAD_URL}')`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "top center",
+            backgroundSize: "210mm 297mm",
+            padding: "58mm 22mm 38mm 24mm",
+            boxSizing: "border-box",
+          }}
+        >
+          <div className="text-center mb-5">
+            <div className="font-bold uppercase tracking-wider text-[14pt] underline">{title}</div>
+            <div className="text-[10pt] text-gray-700 mt-1">Dated: {fmtDate(new Date())}</div>
           </div>
+
 
           <div className="grid grid-cols-2 gap-4 text-sm mb-6">
             <div><span className="text-gray-500">Booking ID</span><div className="font-mono">{booking.booking_id}</div></div>

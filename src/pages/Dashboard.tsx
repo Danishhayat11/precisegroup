@@ -2,9 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { fmtPKR, compact } from "@/lib/format";
-import { StatusBadge, statusTone } from "@/components/StatusBadge";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Receipt, Repeat2, CheckCircle2, Coins } from "lucide-react";
+import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   PieChart, Pie, Legend,

@@ -354,6 +354,14 @@ export default function BookingDocumentEditor({
           Template auto-fills from the booking. Edit freely — Save Draft keeps your changes per booking + document type.
         </div>
       </div>
+
+      <PrintPreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        title={`${type} — ${booking.booking_id}`}
+        mode="text"
+        body={printBody}
+      />
     </div>
   );
 }

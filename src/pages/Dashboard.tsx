@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { fmtPKR, compact } from "@/lib/format";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle, TrendingDown } from "lucide-react";
+import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle, Eye } from "lucide-react";
+import { fmtDate } from "@/lib/format";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   PieChart, Pie, Legend,
@@ -42,12 +43,10 @@ export default function Dashboard() {
   // Adjustment totals from the adjustments register
   const adjApproved = data.adjustments.reduce((s: number, a: any) => s + (Number(a.approved_value) || 0), 0);
   const adjRealised = data.adjustments.reduce((s: number, a: any) => s + (Number(a.realized_value) || 0), 0);
-  // Client balance reduces by the ADJUSTMENT ALLOWED (approved) amount, not the realised value.
-  // Total Received toward client balance = cash + approved adjustments.
-  const totalReceived = cashRecovered + adjApproved;
-  // Company Loss = approved minus actually realised by the company.
-  const companyLoss = Math.max(adjApproved - adjRealised, 0);
-  const pendingBalance = data.bookings.reduce((s: number, b: any) => s + (Number(b.remaining_balance) || 0), 0);
+  // Total Received = Cash Recovered + Adjustment Realised (cash-equivalent inflow to company).
+  const totalReceived = cashRecovered + adjRealised;
+  // Pending Balance = Total Sell Value − Total Received.
+  const pendingBalance = Math.max(totalSellValue - totalReceived, 0);
 
   const overdueRows = data.ledger.filter((l: any) => {
     const isInstallment = !/down payment|possession/i.test(l.particulars ?? "");
@@ -86,11 +85,10 @@ export default function Dashboard() {
   const kpis = [
     { label: "Total Sell Value", val: fmtPKR(totalSellValue), sub: `${data.bookings.length} bookings`, icon: Building2 },
     { label: "Cash Recovered", val: fmtPKR(cashRecovered), sub: "Cash / bank only — excludes adjustments", icon: Banknote },
-    { label: "Total Adjustment Allowed", val: fmtPKR(adjApproved), sub: `Reduces client balance · ${data.adjustments.length} approved`, icon: Repeat2 },
-    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets actually realised by company", icon: Coins },
-    { label: "Company Loss (Adj.)", val: fmtPKR(companyLoss), sub: "Allowed − Realised", icon: TrendingDown },
-    { label: "Total Received", val: fmtPKR(totalReceived), sub: `Cash + Adj. Allowed · ${recoveryPct}% of sell value`, icon: CheckCircle2 },
-    { label: "Total Pending Balance", val: fmtPKR(pendingBalance), sub: "Remaining receivable", icon: Wallet },
+    { label: "Total Adjustment Approved", val: fmtPKR(adjApproved), sub: `${data.adjustments.length} adjustments approved`, icon: Repeat2 },
+    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets realised by company", icon: Coins },
+    { label: "Total Received", val: fmtPKR(totalReceived), sub: `Cash + Adj. Realised · ${recoveryPct}% of sell value`, icon: CheckCircle2 },
+    { label: "Total Pending Balance", val: fmtPKR(pendingBalance), sub: "Sell value − received", icon: Wallet },
     { label: "Current Overdue Amount", val: fmtPKR(overdueValue), sub: `${overdueRows.length} overdue installments`, icon: AlertTriangle },
   ] as const;
   void totalContract; // retained for future use
@@ -103,14 +101,17 @@ export default function Dashboard() {
         title="Dashboard"
         description="Live KPIs powered by your booking, payment, and installment data."
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
         {kpis.map((k) => (
-          <div key={k.label} className="kpi-tile">
+          <div key={k.label} className="kpi-tile border-l-4 border-l-accent">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs text-muted-foreground font-medium">{k.label}</div>
-              <k.icon className="h-4 w-4 text-muted-foreground" />
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{k.label}</div>
+              <k.icon className="h-4 w-4 text-accent" />
             </div>
-            <div className="text-xl font-semibold tabular-nums">{k.val}</div>
+            <div className="text-2xl font-bold tabular-nums text-primary">
+              <span className="text-xs font-semibold text-muted-foreground mr-1">PKR</span>
+              {k.val}
+            </div>
             <div className="text-[11px] text-muted-foreground mt-1">{k.sub}</div>
           </div>
         ))}
@@ -159,9 +160,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-between p-5 pb-3">
           <div>
             <div className="text-sm font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" /> Overdue clients
+              <AlertTriangle className="h-4 w-4 text-destructive" /> Clients Requiring Immediate Action
             </div>
-            <div className="text-xs text-muted-foreground">Clients with at least one overdue installment. HIGH = 3+ overdue, MEDIUM = 1–2.</div>
+            <div className="text-xs text-muted-foreground">HIGH = 3+ overdue installments · MEDIUM = 1–2 overdue · sorted by amount.</div>
           </div>
           <Link to="/bookings" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
             View all bookings <ArrowUpRight className="h-3 w-3" />
@@ -173,19 +174,19 @@ export default function Dashboard() {
               <tr>
                 <th className="text-left font-medium px-5 py-2.5">Client Name</th>
                 <th className="text-left font-medium px-3 py-2.5">Unit</th>
-                <th className="text-right font-medium px-3 py-2.5">Installments Overdue</th>
+                <th className="text-right font-medium px-3 py-2.5">Overdue Installments</th>
                 <th className="text-right font-medium px-3 py-2.5">Overdue Amount (PKR)</th>
-                <th className="text-left font-medium px-5 py-2.5">Risk Level</th>
-                <th className="text-left font-medium px-3 py-2.5">Action</th>
+                <th className="text-left font-medium px-3 py-2.5">Risk Level</th>
+                <th className="text-left font-medium px-3 py-2.5">WhatsApp</th>
+                <th className="text-left font-medium px-5 py-2.5">View</th>
               </tr>
             </thead>
             <tbody>
               {overdueClients.length === 0 ? (
-                <tr><td colSpan={6} className="text-center text-muted-foreground p-8">No overdue clients — you're current.</td></tr>
+                <tr><td colSpan={7} className="text-center text-muted-foreground p-8">No overdue clients — you're current.</td></tr>
               ) : overdueClients.map((b: any) => {
                 const isHigh = b._risk === "HIGH";
                 const rawPhone = String(b.mobile ?? "").replace(/[^\d]/g, "");
-                // Normalize to international format for wa.me (PK default)
                 const waPhone = rawPhone.startsWith("0")
                   ? "92" + rawPhone.slice(1)
                   : rawPhone.startsWith("92")
@@ -203,7 +204,7 @@ export default function Dashboard() {
                     <td className="px-3 py-2.5 font-mono text-xs">{b.unit_id}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums font-medium">{b._ov}</td>
                     <td className={`px-3 py-2.5 text-right tabular-nums font-semibold ${isHigh ? "text-destructive" : "text-warning"}`}>{fmtPKR(b._amt)}</td>
-                    <td className="px-5 py-2.5">
+                    <td className="px-3 py-2.5">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         isHigh
                           ? "bg-destructive/10 text-destructive ring-1 ring-destructive/30"
@@ -227,6 +228,14 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground">No phone</span>
                       )}
                     </td>
+                    <td className="px-5 py-2.5">
+                      <Link
+                        to={`/bookings/${b.booking_id}`}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 text-primary ring-1 ring-primary/30 hover:bg-primary/20 px-2.5 py-1 text-xs font-medium transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </Link>
+                    </td>
                   </tr>
                 );
               })}
@@ -235,7 +244,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
         {Object.entries(unitStatus).map(([k, v]) => (
           <div key={k} className="card-elevated p-4">
@@ -243,6 +251,10 @@ export default function Dashboard() {
             <div className="text-xl font-semibold mt-1">{v as number}</div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 text-right text-[11px] text-muted-foreground">
+        Last updated: {fmtDate(new Date())} · {new Date().toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}
       </div>
     </div>
   );

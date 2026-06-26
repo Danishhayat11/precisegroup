@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { fmtPKR, compact } from "@/lib/format";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins } from "lucide-react";
+import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   PieChart, Pie, Legend,
@@ -171,13 +171,25 @@ export default function Dashboard() {
                 <th className="text-right font-medium px-3 py-2.5">Installments Overdue</th>
                 <th className="text-right font-medium px-3 py-2.5">Overdue Amount (PKR)</th>
                 <th className="text-left font-medium px-5 py-2.5">Risk Level</th>
+                <th className="text-left font-medium px-3 py-2.5">Action</th>
               </tr>
             </thead>
             <tbody>
               {overdueClients.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-muted-foreground p-8">No overdue clients — you're current.</td></tr>
+                <tr><td colSpan={6} className="text-center text-muted-foreground p-8">No overdue clients — you're current.</td></tr>
               ) : overdueClients.map((b: any) => {
                 const isHigh = b._risk === "HIGH";
+                const rawPhone = String(b.mobile ?? "").replace(/[^\d]/g, "");
+                // Normalize to international format for wa.me (PK default)
+                const waPhone = rawPhone.startsWith("0")
+                  ? "92" + rawPhone.slice(1)
+                  : rawPhone.startsWith("92")
+                    ? rawPhone
+                    : rawPhone.length === 10
+                      ? "92" + rawPhone
+                      : rawPhone;
+                const msg = `Dear ${b.client_name},\n\nThis is a reminder from Precise Realtors & Builders regarding your unit ${b.unit_id}.\n\nYou currently have ${b._ov} overdue installment(s) with a total outstanding amount of PKR ${Number(b._amt).toLocaleString("en-PK")}.\n\nKindly arrange the payment at your earliest convenience to avoid further action.\n\nThank you.`;
+                const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}` : "";
                 return (
                   <tr key={b.booking_id} className="border-t hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-2.5 capitalize font-medium">
@@ -194,6 +206,21 @@ export default function Dashboard() {
                       }`}>
                         {b._risk}
                       </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {waUrl ? (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success ring-1 ring-success/30 hover:bg-success/20 px-2.5 py-1 text-xs font-medium transition-colors"
+                          title={`Send WhatsApp to ${b.mobile}`}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No phone</span>
+                      )}
                     </td>
                   </tr>
                 );

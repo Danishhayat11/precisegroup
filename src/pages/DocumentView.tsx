@@ -68,8 +68,8 @@ export default function DocumentView() {
             <option key={b.booking_id} value={b.booking_id}>{b.booking_id} — {b.client_name} ({b.unit_id})</option>
           ))}
         </select>
-        <Button onClick={() => window.print()} disabled={!booking}>
-          <Printer className="h-4 w-4 mr-1" /> Print / PDF
+        <Button onClick={() => setPreviewOpen(true)} disabled={!booking}>
+          <Printer className="h-4 w-4 mr-1" /> Print Preview
         </Button>
       </div>
 

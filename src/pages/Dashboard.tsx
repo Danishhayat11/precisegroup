@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { fmtPKR, compact } from "@/lib/format";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle, TrendingDown } from "lucide-react";
+import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle, Eye } from "lucide-react";
+import { fmtDate } from "@/lib/format";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   PieChart, Pie, Legend,

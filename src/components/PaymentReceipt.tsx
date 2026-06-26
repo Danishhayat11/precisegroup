@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtDate, fmtPKR, maskCNIC } from "@/lib/format";
-import { PrintPreviewModal } from "@/components/PrintPreviewModal";
+import PrintPreviewModal from "@/components/PrintPreviewModal";
 
 interface Props {
   open: boolean;

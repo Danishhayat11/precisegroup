@@ -22,6 +22,7 @@ export default function DocumentView() {
   const [params, setParams] = useSearchParams();
   const bookingId = params.get("booking") ?? "";
   const [selected, setSelected] = useState(bookingId);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["doc-bookings"],

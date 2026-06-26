@@ -6,6 +6,7 @@ import { StatusBadge, statusTone } from "@/components/StatusBadge";
 import { fmtDate, fmtPKR, maskCNIC } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Printer } from "lucide-react";
+import BookingDocumentEditor from "@/components/BookingDocumentEditor";
 
 export default function BookingDetail() {
   const { id = "" } = useParams();

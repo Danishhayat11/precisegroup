@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { fmtPKR, compact } from "@/lib/format";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle } from "lucide-react";
+import { ArrowUpRight, Banknote, Wallet, AlertTriangle, Building2, Repeat2, CheckCircle2, Coins, MessageCircle, TrendingDown } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   PieChart, Pie, Legend,
@@ -42,7 +42,11 @@ export default function Dashboard() {
   // Adjustment totals from the adjustments register
   const adjApproved = data.adjustments.reduce((s: number, a: any) => s + (Number(a.approved_value) || 0), 0);
   const adjRealised = data.adjustments.reduce((s: number, a: any) => s + (Number(a.realized_value) || 0), 0);
-  const totalReceived = cashRecovered + adjRealised;
+  // Client balance reduces by the ADJUSTMENT ALLOWED (approved) amount, not the realised value.
+  // Total Received toward client balance = cash + approved adjustments.
+  const totalReceived = cashRecovered + adjApproved;
+  // Company Loss = approved minus actually realised by the company.
+  const companyLoss = Math.max(adjApproved - adjRealised, 0);
   const pendingBalance = data.bookings.reduce((s: number, b: any) => s + (Number(b.remaining_balance) || 0), 0);
 
   const overdueRows = data.ledger.filter((l: any) => {
@@ -82,9 +86,10 @@ export default function Dashboard() {
   const kpis = [
     { label: "Total Sell Value", val: fmtPKR(totalSellValue), sub: `${data.bookings.length} bookings`, icon: Building2 },
     { label: "Cash Recovered", val: fmtPKR(cashRecovered), sub: "Cash / bank only — excludes adjustments", icon: Banknote },
-    { label: "Total Adjustment Amount", val: fmtPKR(adjApproved), sub: `${data.adjustments.length} adjustments approved`, icon: Repeat2 },
-    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets realised by company", icon: Coins },
-    { label: "Total Received", val: fmtPKR(totalReceived), sub: `${recoveryPct}% of sell value`, icon: CheckCircle2 },
+    { label: "Total Adjustment Allowed", val: fmtPKR(adjApproved), sub: `Reduces client balance · ${data.adjustments.length} approved`, icon: Repeat2 },
+    { label: "Total Adjustment Realised", val: fmtPKR(adjRealised), sub: "Assets actually realised by company", icon: Coins },
+    { label: "Company Loss (Adj.)", val: fmtPKR(companyLoss), sub: "Allowed − Realised", icon: TrendingDown },
+    { label: "Total Received", val: fmtPKR(totalReceived), sub: `Cash + Adj. Allowed · ${recoveryPct}% of sell value`, icon: CheckCircle2 },
     { label: "Total Pending Balance", val: fmtPKR(pendingBalance), sub: "Remaining receivable", icon: Wallet },
     { label: "Current Overdue Amount", val: fmtPKR(overdueValue), sub: `${overdueRows.length} overdue installments`, icon: AlertTriangle },
   ] as const;
@@ -98,7 +103,7 @@ export default function Dashboard() {
         title="Dashboard"
         description="Live KPIs powered by your booking, payment, and installment data."
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
         {kpis.map((k) => (
           <div key={k.label} className="kpi-tile">
             <div className="flex items-center justify-between mb-2">

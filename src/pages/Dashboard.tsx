@@ -160,9 +160,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-between p-5 pb-3">
           <div>
             <div className="text-sm font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" /> Overdue clients
+              <AlertTriangle className="h-4 w-4 text-destructive" /> Clients Requiring Immediate Action
             </div>
-            <div className="text-xs text-muted-foreground">Clients with at least one overdue installment. HIGH = 3+ overdue, MEDIUM = 1–2.</div>
+            <div className="text-xs text-muted-foreground">HIGH = 3+ overdue installments · MEDIUM = 1–2 overdue · sorted by amount.</div>
           </div>
           <Link to="/bookings" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
             View all bookings <ArrowUpRight className="h-3 w-3" />
@@ -174,10 +174,11 @@ export default function Dashboard() {
               <tr>
                 <th className="text-left font-medium px-5 py-2.5">Client Name</th>
                 <th className="text-left font-medium px-3 py-2.5">Unit</th>
-                <th className="text-right font-medium px-3 py-2.5">Installments Overdue</th>
+                <th className="text-right font-medium px-3 py-2.5">Overdue Installments</th>
                 <th className="text-right font-medium px-3 py-2.5">Overdue Amount (PKR)</th>
-                <th className="text-left font-medium px-5 py-2.5">Risk Level</th>
-                <th className="text-left font-medium px-3 py-2.5">Action</th>
+                <th className="text-left font-medium px-3 py-2.5">Risk Level</th>
+                <th className="text-left font-medium px-3 py-2.5">WhatsApp</th>
+                <th className="text-left font-medium px-5 py-2.5">View</th>
               </tr>
             </thead>
             <tbody>

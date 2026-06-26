@@ -300,21 +300,21 @@ export default function BookingDocumentEditor({
   };
 
   const handlePrint = () => {
-    const w = window.open("", "_blank", "width=900,height=1100");
-    if (!w) { toast.error("Pop-up blocked — allow pop-ups to print."); return; }
-    const safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    w.document.write(`<!doctype html>
-<html><head><title>${type} — ${booking.booking_id}</title>
-<style>
-  @page { size: A4; margin: 22mm 20mm; }
-  html, body { background: #fff; color: #111; }
-  body { font-family: "Times New Roman", Georgia, serif; font-size: 12pt; line-height: 1.55; }
-  pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: inherit; margin: 0; }
-</style></head><body><pre>${safe}</pre>
-<script>window.onload=()=>{window.focus();window.print();}</script>
-</body></html>`);
-    w.document.close();
+    try {
+      // Strip the textual letterhead block at the top of templates so it doesn't
+      // double up with the printed letterhead image.
+      const body = text.replace(/^PRECISE REALTORS & BUILDERS \(PVT\.\) LTD\.\s*\n/i, "");
+      printOnLetterhead({
+        title: `${type} — ${booking.booking_id}`,
+        body: `<pre class="body">${body
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`,
+        html: true,
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Unable to open print window");
+    }
   };
+
 
   return (
     <div className="card-elevated overflow-hidden">

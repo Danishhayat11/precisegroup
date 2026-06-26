@@ -101,14 +101,17 @@ export default function Dashboard() {
         title="Dashboard"
         description="Live KPIs powered by your booking, payment, and installment data."
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
         {kpis.map((k) => (
-          <div key={k.label} className="kpi-tile">
+          <div key={k.label} className="kpi-tile border-l-4 border-l-accent">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs text-muted-foreground font-medium">{k.label}</div>
-              <k.icon className="h-4 w-4 text-muted-foreground" />
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{k.label}</div>
+              <k.icon className="h-4 w-4 text-accent" />
             </div>
-            <div className="text-xl font-semibold tabular-nums">{k.val}</div>
+            <div className="text-2xl font-bold tabular-nums text-primary">
+              <span className="text-xs font-semibold text-muted-foreground mr-1">PKR</span>
+              {k.val}
+            </div>
             <div className="text-[11px] text-muted-foreground mt-1">{k.sub}</div>
           </div>
         ))}

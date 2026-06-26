@@ -6,6 +6,7 @@ import { Printer, ChevronLeft } from "lucide-react";
 import { fmtDate, fmtPKR } from "@/lib/format";
 import { useState, useEffect } from "react";
 import { LETTERHEAD_URL } from "@/lib/print";
+import PrintPreviewModal from "@/components/PrintPreviewModal";
 
 const titles: Record<string, string> = {
   "receipt": "Payment Receipt", "payment-plan": "Payment Plan", "allotment": "Allotment Letter",

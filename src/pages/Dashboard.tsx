@@ -43,12 +43,10 @@ export default function Dashboard() {
   // Adjustment totals from the adjustments register
   const adjApproved = data.adjustments.reduce((s: number, a: any) => s + (Number(a.approved_value) || 0), 0);
   const adjRealised = data.adjustments.reduce((s: number, a: any) => s + (Number(a.realized_value) || 0), 0);
-  // Client balance reduces by the ADJUSTMENT ALLOWED (approved) amount, not the realised value.
-  // Total Received toward client balance = cash + approved adjustments.
-  const totalReceived = cashRecovered + adjApproved;
-  // Company Loss = approved minus actually realised by the company.
-  const companyLoss = Math.max(adjApproved - adjRealised, 0);
-  const pendingBalance = data.bookings.reduce((s: number, b: any) => s + (Number(b.remaining_balance) || 0), 0);
+  // Total Received = Cash Recovered + Adjustment Realised (cash-equivalent inflow to company).
+  const totalReceived = cashRecovered + adjRealised;
+  // Pending Balance = Total Sell Value − Total Received.
+  const pendingBalance = Math.max(totalSellValue - totalReceived, 0);
 
   const overdueRows = data.ledger.filter((l: any) => {
     const isInstallment = !/down payment|possession/i.test(l.particulars ?? "");

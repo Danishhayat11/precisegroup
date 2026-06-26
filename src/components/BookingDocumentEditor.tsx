@@ -301,20 +301,12 @@ export default function BookingDocumentEditor({
   };
 
   const handlePrint = () => {
-    try {
-      // Strip the textual letterhead block at the top of templates so it doesn't
-      // double up with the printed letterhead image.
-      const body = text.replace(/^PRECISE REALTORS & BUILDERS \(PVT\.\) LTD\.\s*\n/i, "");
-      printOnLetterhead({
-        title: `${type} — ${booking.booking_id}`,
-        body: `<pre class="body">${body
-          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`,
-        html: true,
-      });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Unable to open print window");
-    }
+    setPreviewOpen(true);
   };
+
+  // Body sent to the preview modal — strip the textual letterhead block at the
+  // top of templates so it doesn't double up with the printed letterhead image.
+  const printBody = text.replace(/^PRECISE REALTORS & BUILDERS \(PVT\.\) LTD\.\s*\n/i, "");
 
 
   return (

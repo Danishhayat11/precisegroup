@@ -186,6 +186,10 @@ export default function BookingDetail() {
           </table>
         </div>
       </div>
+
+      <div className="mt-6">
+        <BookingDocumentEditor booking={b} payments={data.payments} ledger={ledgerWithStatus} />
+      </div>
     </div>
   );
 }

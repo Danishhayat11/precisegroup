@@ -22,6 +22,8 @@ import {
   Eye, Pencil, Receipt, BookOpen, FilePlus2, MessageCircle, Plus, Search, MoreHorizontal,
 } from "lucide-react";
 import { BookingForm } from "@/components/BookingForm";
+import { fetchDocSummaries } from "@/lib/bookingDocuments";
+import { cn } from "@/lib/utils";
 
 const STATUSES = ["All", "Active", "Completed", "Cancelled", "Transferred"];
 const RISKS = ["All", "HIGH", "MEDIUM", "LOW"];

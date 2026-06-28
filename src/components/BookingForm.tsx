@@ -394,7 +394,18 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
         </div>
       </section>
 
-      {/* Status & Notes */}
+      {/* Payment Plan Preview */}
+      <PaymentPlanPreview
+        firstDue={form.first_installment_due}
+        count={form.no_of_installments}
+        amount={form.installment_amount}
+        frequency={form.installment_frequency}
+        downPaymentCash={form.down_payment}
+        adjustmentCredit={form.adjustment_credit}
+        possessionAmount={form.possession_amount}
+        bookingDate={form.booking_date}
+      />
+
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label>Status</Label>

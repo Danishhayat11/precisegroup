@@ -332,7 +332,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           <Label>Booking *</Label>
           <Popover open={bookingOpen} onOpenChange={setBookingOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="w-full justify-between h-9 font-normal">
+              <Button variant="outline" role="combobox" disabled={locked} className="w-full justify-between h-9 font-normal">
                 <span className="truncate">
                   {selectedBooking
                     ? `${selectedBooking.client_name} · ${selectedBooking.booking_id} · ${selectedBooking.unit_id}`

@@ -24,6 +24,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Catch type regressions BEFORE running any tests — a broken type
+      # signature usually surfaces here as a clear compiler error instead
+      # of a noisy runtime failure deep inside a Vitest assertion.
+      - name: TypeScript typecheck (tsc --noEmit)
+        run: bunx tsc -p tsconfig.json --noEmit
+
+
+
       # Hard-fail on any regression in the Payments-related integration tests.
       # These are the highest-signal tests for the audit-log <-> Payments flow
       # (replay error banner, back-to-payment link, locked-field tooltips).

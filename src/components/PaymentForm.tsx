@@ -542,7 +542,6 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             ref={amountRef}
             type="number"
             min={0}
-            disabled={locked}
             value={form.amount || ""}
             onChange={(e) => set("amount", Number(e.target.value || 0))}
             className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}

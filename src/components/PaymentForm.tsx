@@ -86,6 +86,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const [blockedAudit, setBlockedAudit] = useState<PaymentBlockedAuditEntry | null>(null);
   const [blockedPayload, setBlockedPayload] = useState<Record<string, any> | null>(null);
   const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
+  const [viewingAudit, setViewingAudit] = useState<PaymentBlockedAuditEntry | null>(null);
   const paymentTypeRef = useRef<HTMLButtonElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 

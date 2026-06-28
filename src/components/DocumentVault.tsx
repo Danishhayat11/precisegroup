@@ -441,14 +441,61 @@ export default function DocumentVault({ bookingId }: Props) {
                 />
               </div>
             )}
+            {isNoticeLabel && (
+              <div className="rounded-md border border-border bg-muted/30 p-2.5 space-y-2.5">
+                <div className="text-[11px] font-semibold text-foreground">
+                  Delivery details
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    (required for notice/letter records)
+                  </span>
+                </div>
+                <div>
+                  <Label className="text-xs">Sent Via *</Label>
+                  <Select value={sentVia} onValueChange={(v) => setSentVia(v as SentVia)}>
+                    <SelectTrigger><SelectValue placeholder="Select delivery method" /></SelectTrigger>
+                    <SelectContent>
+                      {SENT_VIA_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(sentVia === "TCS Courier" || sentVia === "Both") && (
+                  <div>
+                    <Label className="text-xs">TCS Tracking No.</Label>
+                    <Input
+                      value={tcsTracking}
+                      onChange={(e) => setTcsTracking(e.target.value)}
+                      placeholder="e.g. 1234567890"
+                    />
+                  </div>
+                )}
+                {(sentVia === "WhatsApp" || sentVia === "Both") && (
+                  <div>
+                    <Label className="text-xs">WhatsApp sent to</Label>
+                    <Input
+                      value={whatsappTo}
+                      onChange={(e) => setWhatsappTo(e.target.value)}
+                      placeholder="e.g. +92 333 1234567"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <Label className="text-xs">Date of Document *</Label>
               <Input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+              {isNoticeLabel && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Use this as the date the notice was sent.
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-xs">Notes (optional)</Label>
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
+
           </div>
 
           <DialogFooter>

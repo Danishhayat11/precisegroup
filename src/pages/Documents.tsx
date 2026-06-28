@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logDocumentAction } from "@/lib/audit";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { fmtPKR, fmtDate } from "@/lib/format";
 import { amountInWordsPK } from "@/lib/amountInWords";
-import { Printer, FileText, AlertTriangle, Ban, Gavel, Search, Sparkles } from "lucide-react";
+import { Printer, FileText, AlertTriangle, Ban, Gavel, Search, Sparkles, Save, Download, History, Pencil } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 type DocKey = "legal" | "final" | "final_cancel" | "cancellation";
 
@@ -37,12 +39,25 @@ function noticeRef(unit: string, doc: DocKey, serial = 1) {
   return doc === "cancellation" ? `PRB/MA/${u}/CAN/${s}` : `PRB/MA/${u}/${yr}-${s}`;
 }
 
+const DOC_DB_TYPE: Record<DocKey, string> = {
+  legal: "legal_notice",
+  final: "final_legal_notice",
+  final_cancel: "final_legal_notice_cancellation",
+  cancellation: "cancellation_notice",
+};
+
 export default function Documents() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const printRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [bookingId, setBookingId] = useState("");
   const [docType, setDocType] = useState<DocKey | null>(null);
   const [prevNotice1, setPrevNotice1] = useState("");
   const [prevNotice2, setPrevNotice2] = useState("");
+  const [serial, setSerial] = useState(1);
+  const [savedNoticeId, setSavedNoticeId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["doc-bookings-all"],
@@ -85,9 +100,38 @@ export default function Documents() {
     else if (n >= 1) setDocType("legal");
   }, [booking, overdueCount]); // eslint-disable-line
 
+  // Notice history for the selected booking (most-recent first).
+  const { data: noticeHistory = [] } = useQuery({
+    queryKey: ["notice-history", bookingId],
+    enabled: !!bookingId,
+    queryFn: async () =>
+      (await supabase
+        .from("notices")
+        .select("id,ref_no,doc_type,notice_date,channel,status,created_at,serial,year")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })).data ?? [],
+  });
+
+  // Look up the next per-booking serial whenever booking or doc type changes.
+  useEffect(() => {
+    setSavedNoticeId(null);
+    setEditing(false);
+    if (!bookingId || !docType) return;
+    const yr = new Date().getFullYear();
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("next_notice_serial", {
+        _booking_id: bookingId,
+        _year: yr,
+      });
+      if (!cancelled && typeof data === "number") setSerial(data);
+    })();
+    return () => { cancelled = true; };
+  }, [bookingId, docType, noticeHistory.length]);
+
   const todayStr = FMT_DATE(new Date());
   const deadlineStr = docType ? FMT_DATE(addDays(new Date(), DOC_META[docType].deadline)) : "";
-  const ref = booking && docType ? noticeRef(booking.unit_id, docType) : "";
+  const ref = booking && docType ? noticeRef(booking.unit_id, docType, serial) : "";
 
   const ctx = booking && docType
     ? {
@@ -257,22 +301,160 @@ export default function Documents() {
               <div className="text-sm font-semibold">Step 4 — Document preview</div>
               <div className="text-xs text-muted-foreground">
                 Ref: <span className="font-mono">{ctx.ref}</span> · Generated {ctx.today}
+                {savedNoticeId && <span className="ml-2 text-success font-semibold">· Draft saved</span>}
+                {editing && <span className="ml-2 text-amber-600 font-semibold">· Editing</span>}
               </div>
             </div>
-            <Button onClick={() => {
-              void logDocumentAction({
-                action: "document.print",
-                documentType: DOC_META[docType].title,
-                referenceNo: ctx.ref,
-                bookingId: bookingId,
-              });
-              window.print();
-            }}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={editing ? "default" : "outline"}
+                size="sm"
+                onClick={() => setEditing((e) => !e)}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                {editing ? "Done editing" : "Edit text"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const yr = new Date().getFullYear();
+                  const body = {
+                    html: printRef.current?.innerHTML ?? null,
+                    placeholders: { ...ctx, overdueRows: undefined },
+                  };
+                  const channel: string[] = [];
+                  const payload = {
+                    ref_no: ctx.ref,
+                    booking_id: bookingId,
+                    doc_type: DOC_DB_TYPE[docType],
+                    notice_date: format(new Date(), "yyyy-MM-dd"),
+                    deadline_date: DOC_META[docType].deadline
+                      ? format(addDays(new Date(), DOC_META[docType].deadline), "yyyy-MM-dd")
+                      : null,
+                    previous_notice_date: prevNotice1 || null,
+                    previous_notice_2_date: prevNotice2 || null,
+                    unit_no: booking.unit_id,
+                    serial,
+                    year: yr,
+                    channel,
+                    status: "draft",
+                    client_title: ctx.title,
+                    overdue_amount: overdueAmount,
+                    overdue_count: overdueCount,
+                    body,
+                  };
+                  const { data, error } = savedNoticeId
+                    ? await supabase.from("notices").update(payload).eq("id", savedNoticeId).select("id").single()
+                    : await supabase.from("notices").insert(payload).select("id").single();
+                  if (error) {
+                    toast({ variant: "destructive", title: "Save failed", description: error.message });
+                    return;
+                  }
+                  setSavedNoticeId(data.id);
+                  void logDocumentAction({
+                    action: "document.draft.save",
+                    documentType: DOC_META[docType].title,
+                    referenceNo: ctx.ref,
+                    bookingId,
+                  });
+                  qc.invalidateQueries({ queryKey: ["notice-history", bookingId] });
+                  toast({ title: "Draft saved", description: `${ctx.ref} stored in notice history.` });
+                }}
+              >
+                <Save className="h-4 w-4 mr-1" /> Save draft
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!printRef.current) return;
+                  void logDocumentAction({
+                    action: "document.download",
+                    documentType: DOC_META[docType].title,
+                    referenceNo: ctx.ref,
+                    bookingId,
+                  });
+                  await html2pdf()
+                    .from(printRef.current)
+                    .set({
+                      margin: 0,
+                      filename: `${ctx.ref.replace(/[\\/]/g, "-")}.pdf`,
+                      image: { type: "jpeg", quality: 0.98 },
+                      html2canvas: { scale: 2, useCORS: true },
+                      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                    })
+                    .save();
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" /> Download PDF
+              </Button>
+              <Button size="sm" onClick={() => {
+                void logDocumentAction({
+                  action: "document.print",
+                  documentType: DOC_META[docType].title,
+                  referenceNo: ctx.ref,
+                  bookingId,
+                });
+                window.print();
+              }}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+            </div>
           </div>
 
-          <div id="doc-print" className="bg-white text-black border rounded-md shadow-sm mx-auto"
-               style={{ width: "210mm", minHeight: "297mm", padding: "25mm", boxSizing: "border-box", fontFamily: '"Times New Roman", Georgia, serif', fontSize: "11pt", lineHeight: 1.55 }}>
+          <div
+            ref={printRef}
+            id="doc-print"
+            contentEditable={editing}
+            suppressContentEditableWarning
+            className={`bg-white text-black border rounded-md shadow-sm mx-auto ${editing ? "outline outline-2 outline-amber-400" : ""}`}
+            style={{ width: "210mm", minHeight: "297mm", padding: "25mm", boxSizing: "border-box", fontFamily: '"Times New Roman", Georgia, serif', fontSize: "11pt", lineHeight: 1.55 }}
+          >
             <DocBody doc={docType} c={ctx} />
+          </div>
+        </Card>
+      )}
+
+      {/* Notice history per booking */}
+      {booking && noticeHistory.length > 0 && (
+        <Card className="p-4 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <History className="h-4 w-4" />
+            <div className="text-sm font-semibold">Notice history for this booking</div>
+            <Badge variant="secondary" className="ml-1">{noticeHistory.length}</Badge>
+          </div>
+          <div className="border rounded-md divide-y text-xs">
+            {noticeHistory.map((n: any) => (
+              <div key={n.id} className="p-2 flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[11px]">{n.ref_no}</span>
+                <Badge variant="outline" className="text-[10px]">
+                  {(n.doc_type || "").replace(/_/g, " ")}
+                </Badge>
+                <span className="text-muted-foreground">{FMT_DATE(n.notice_date)}</span>
+                {Array.isArray(n.channel) && n.channel.length > 0 && (
+                  <span className="text-muted-foreground">via {n.channel.join(", ")}</span>
+                )}
+                <Badge
+                  variant={n.status === "delivered" ? "default" : n.status === "sent" ? "secondary" : "outline"}
+                  className="ml-auto text-[10px]"
+                >
+                  {n.status}
+                </Badge>
+                <select
+                  value={n.status}
+                  onChange={async (e) => {
+                    const v = e.target.value;
+                    const { error } = await supabase.from("notices").update({ status: v }).eq("id", n.id);
+                    if (error) toast({ variant: "destructive", title: "Update failed", description: error.message });
+                    else qc.invalidateQueries({ queryKey: ["notice-history", bookingId] });
+                  }}
+                  className="text-[10px] border rounded px-1 py-0.5 bg-background"
+                >
+                  <option value="draft">draft</option>
+                  <option value="sent">sent</option>
+                  <option value="delivered">delivered</option>
+                </select>
+              </div>
+            ))}
           </div>
         </Card>
       )}

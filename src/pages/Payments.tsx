@@ -234,6 +234,16 @@ export default function Payments() {
               </div>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+              {replayError.auditId && openReceiptParam && auditIdParam && (
+                <button
+                  type="button"
+                  aria-label="Retry latest audit fetch"
+                  onClick={() => { setReplayError(null); setRetryNonce((n) => n + 1); }}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Retry
+                </button>
+              )}
               {replayError.auditId && (
                 <Link
                   to={`/audit?highlight=${encodeURIComponent(replayError.auditId)}`}

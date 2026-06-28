@@ -769,9 +769,54 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
                   View full audit + field-by-field diff
                 </button>
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                🔒 Form locked. Toggle any adjustment / non-cash option to unlock — change <span className="font-semibold text-foreground">Payment Type</span>, <span className="font-semibold text-foreground">Amount</span>, or <span className="font-semibold text-foreground">Payment Head</span> above.
-              </p>
+              <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-[11px]">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-200">
+                  🔒 Form locked after blocked save
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  Most fields are frozen so you can't accidentally re-submit the same invariant-violating row. Change any of the unlocked fields below to clear the block and re-enable the rest of the form.
+                </p>
+
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                      ✅ Unlocked — toggling any of these clears the lock
+                    </div>
+                    <ul className="mt-1 space-y-1 text-foreground">
+                      <li>
+                        <span className="font-semibold">Payment Type</span>{" "}
+                        <span className="text-muted-foreground">— it's the adjustment / non-cash switch the trigger checks first.</span>
+                      </li>
+                      <li>
+                        <span className="font-semibold">Amount</span>{" "}
+                        <span className="text-muted-foreground">— drives <code className="font-mono text-[10px]">safe_cash_amount</code>; a different value re-evaluates the invariant.</span>
+                      </li>
+                      <li>
+                        <span className="font-semibold">Payment Head</span>{" "}
+                        <span className="text-muted-foreground">— re-classifying the head (Installment, Possession, etc.) is treated as a fresh attempt.</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="rounded border border-muted bg-muted/40 p-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      🚫 Locked until you unlock above
+                    </div>
+                    <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                      <li>Payment Date</li>
+                      <li>Booking</li>
+                      <li>Account / Bank</li>
+                      <li>Cheque / Reference Number</li>
+                      <li>Received By</li>
+                      <li>Notes</li>
+                      <li>Save button</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Or use <span className="font-semibold text-foreground">"Use suggested fix"</span> in the audit drawer to apply the recommended patch in one click.
+                </p>
+              </div>
             </div>
           </div>
         </div>

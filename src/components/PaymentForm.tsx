@@ -149,11 +149,21 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     [bookings, form.booking_id]
   );
 
+  // Fields whose value materially changes the cash-vs-adjustment outcome.
+  // Toggling any of them should unlock the form after a trigger block — not
+  // just Payment Type — because they're the same knobs the user has to turn
+  // to satisfy the safe_cash_amount invariant.
+  const UNLOCK_KEYS = new Set<keyof PaymentFormValue>([
+    "payment_mode",
+    "amount",
+    "payment_head",
+  ]);
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));
-    // Only unlock the form when the user actually changes Payment Type.
-    if (blockedAudit && k === "payment_mode") setBlockedAudit(null);
+    // Unlock when the user toggles any adjustment / non-cash option that
+    // could resolve the block (Payment Type, Amount, or Payment Head).
+    if (blockedAudit && UNLOCK_KEYS.has(k)) setBlockedAudit(null);
   };
 
   // Form is locked after a Postgres trigger block until Payment Type changes.

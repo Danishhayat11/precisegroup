@@ -315,8 +315,11 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     }
   }, [liveBlockStatus]);
 
-  // Form is locked after a Postgres trigger block until the live re-check passes.
-  const locked = !!blockedAudit;
+  // Form is locked after a Postgres trigger block until the live re-check
+  // passes, OR when the parent forces a lock (e.g. latest audit prefill
+  // fetch failed and we can't safely allow any interaction).
+  const locked = !!blockedAudit || !!lockedByParent;
+
 
   // Inline tooltip wrapper for locked fields. Thin shim over the shared
   // `LockedTip` component so the wording (and the integration tests that

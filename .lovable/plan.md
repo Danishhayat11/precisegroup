@@ -1,105 +1,89 @@
-# Document Vault
+## Goal
 
-A per-booking file vault: upload PDFs/images/Word docs, label them, list/search/preview/download/delete, with dashboard badges and a one-click "Mark as Sent via TCS" hook on the legal-notice page.
+Add a single-page A4 "Client Payment History" printable document that lists every payment a client has made against their unit, with a totals block, signature lines, and the same dual letterhead system already used by other documents. Wire it into four entry points.
 
-## 1. Storage
+## Deliverables
 
-- Create a **private** Supabase Storage bucket `booking-documents`.
-- Path convention: `bookings/<booking_id>/<uuid>.<ext>`.
-- RLS on `storage.objects`:
-  - `SELECT` / `INSERT` / `DELETE`: authenticated users (matches the rest of the app's staff-write model).
-- 10 MB max enforced client-side before upload; allowed mime types: PDF, JPG, PNG, DOCX.
+### 1. New component: `src/components/PaymentHistoryDocument.tsx`
+Pure presentational component that renders the full A4 page given a booking, its payments, and on-screen filter state. Sections per the spec:
 
-## 2. New table `public.booking_documents`
+1. Letterhead (reuses the existing `PrintPreviewModal` letterhead switcher — Precise default, Dani alternate)
+2. Title: "CLIENT PAYMENT HISTORY" + "Statement of Payments Received"
+3. Two-column client + unit info block
+4. Navy contract summary bar (Contract value | Received | Remaining)
+5. Payments table (9 cols, sorted ascending by date, color-coded by type, JetBrains Mono for receipt + amounts, running balance, optional subtotal rows when both Down Payment + Installment exist, light-purple row tint for Adjustment/Asset)
+6. Totals block (breakdown left, balance right, "✓ FULLY PAID" green if 0)
+7. Notes box (only if any payment has notes or any adjustment exists)
+8. Signature block (Verified By / Client Acknowledgment)
+9. Footer (existing gold divider + contact + disclaimer)
 
-Columns (domain-specific only):
-- `booking_id` (text, FK → bookings.booking_id, on delete cascade)
-- `label` (text — one of the fixed dropdown values, or `Other`)
-- `label_custom` (text, nullable — used when label = `Other`)
-- `document_date` (date)
-- `notes` (text, nullable)
-- `storage_path` (text — object path in `booking-documents`)
-- `file_name` (text — original filename)
-- `mime_type` (text)
-- `size_bytes` (bigint)
-- `uploaded_by` (uuid → auth.users, nullable)
-- `uploaded_by_name` (text, nullable — denormalized for display)
-- `source` (text, default `manual`) — set to `legal_notice_tcs` for quick-upload entries
-- `tcs_tracking_no` (text, nullable)
-- standard `id`, `created_at`, `updated_at`
+**One-page enforcement** — count payment rows up front and pick a tier:
 
-Grants + RLS:
-- `GRANT SELECT, INSERT, UPDATE, DELETE` to `authenticated`; `GRANT ALL` to `service_role`.
-- RLS enabled. Policies: authenticated can select/insert/update/delete (consistent with existing booking-data tables).
-
-## 3. Components
-
-- `src/components/DocumentVault.tsx` — the main panel, embedded inside `BookingDetail`.
-  - Upload button → file picker → modal asking Label (Select), Custom label input (only when `Other`), Date, Notes → uploads to storage, inserts row.
-  - List table: Label | File Name | Size | Date | Uploaded By | Notes | Preview | Download | Delete (with confirm).
-  - Total count line: "N documents on file".
-  - Search input + label filter dropdown.
-  - File-type icon (PDF / Word / Image) based on mime.
-  - Inline preview: PDFs and images open in a Dialog using a signed URL.
-
-- `src/lib/bookingDocuments.ts` — helpers: `listDocs`, `uploadDoc`, `deleteDoc`, `signedUrl`, `LABEL_OPTIONS`, size/icon utils.
-
-## 4. Booking list badges (`src/pages/Bookings.tsx`)
-
-- Fetch per-booking doc counts + presence of `Agreement to Sell` and `Client CNIC Copy` in one query (group by booking_id).
-- New column "Docs":
-  - Count badge (e.g. `12`).
-  - **Red** if Agreement to Sell missing.
-  - **Green** if both Agreement and CNIC present.
-  - Neutral otherwise.
-
-## 5. Legal-notice quick upload (`src/pages/Documents.tsx` / DocumentView)
-
-- After Print/Download, show a "Mark as Sent via TCS" button.
-- Opens a small dialog: TCS tracking number (required).
-- Action: render the notice to PDF (reuse existing print pipeline → `html2pdf`/blob), upload to `booking-documents`, insert `booking_documents` row with:
-  - `label = 'Legal Notice Sent'` (or Final/Cancellation per notice type)
-  - `document_date = today`
-  - `notes = 'TCS tracking: <no>'`
-  - `tcs_tracking_no`, `source = 'legal_notice_tcs'`
-- Also updates the existing `notices` row `status = 'Sent'`, `channel = 'TCS'`.
-
-## 6. Constants
-
-```ts
-LABEL_OPTIONS = [
-  "Agreement to Sell / Booking Form",
-  "Client CNIC Copy",
-  "Client Photo",
-  "Payment Receipt (Scanned)",
-  "Legal Notice Sent",
-  "Final Legal Notice Sent",
-  "Cancellation Notice Sent",
-  "Client Reply / Response Received",
-  "Court Letter / Legal Correspondence",
-  "Cheque Copy",
-  "Bank Transfer Slip",
-  "Allotment Letter (Signed Copy)",
-  "Possession Letter (Signed Copy)",
-  "Transfer Form (Signed)",
-  "NOC / Clearance Certificate",
-  "Affidavit",
-  "Other",
-];
-MANDATORY = ["Agreement to Sell / Booking Form"];
-GREEN_REQUIRES = ["Agreement to Sell / Booking Form", "Client CNIC Copy"];
+```text
+1–8   rows: row 8mm, font 9.5pt, totals 20mm
+9–14  rows: row 7mm, font 9pt,  totals 18mm
+15–20 rows: row 6mm, font 8.5pt, compact totals
+21+   rows: split — page 1 "Page 1 of 2", page 2 continuation header + remaining rows + totals
 ```
 
-## Order of execution
+Applied via a `tier` variable that selects Tailwind/inline-style values; no runtime measurement.
 
-1. Migration: bucket policies + `booking_documents` table.
-2. Library helpers + types.
-3. `DocumentVault` component + integrate into `BookingDetail`.
-4. Bookings list badges.
-5. Legal-notice "Mark as Sent via TCS" hook.
+**Data rules (locked):**
+- Cash + Bank Transfer → counted in "Total Cash + Bank"
+- Adjustment/Asset → shown in table with purple tint, NEVER added to cash/bank totals; surfaced separately as "Adjustment Credit Applied"
+- Running balance = contract_value − cumulative (cash + bank + adjustment credit)
+- Overdue amount + count read from `installment_ledger` for this booking (overdue rows where due_date < today and not fully paid)
 
-## Out of scope (call out)
+### 2. New host page: `src/pages/PaymentHistoryView.tsx` (route `/payment-history/:bookingId`)
+- Loads booking, client, unit, payments, installment_ledger via existing supabase patterns
+- On-screen filter bar (hidden from print via existing `.print:hidden` pattern):
+  - Date range From / To (filters which payments render)
+  - "Show adjustment payments" toggle (default on)
+  - "Show remarks column" toggle (default on)
+- Quick stats bar (screen only): Total Payments, Cash total, Last Payment date, Days Since Last (+ orange badge >90, red badge >180)
+- If a date range filter is active, render a note line in the printed body: "* This statement shows payments from [FROM] to [TO] only. Full payment history available on request."
+- Letterhead switcher (existing dual switcher) above the preview
+- "Print" button → `window.print()` via existing `src/lib/print.ts` helper
 
-- Versioning / replace-in-place — delete + re-upload instead.
-- Bulk upload / drag-multi — one file at a time per the spec.
-- OCR / content search — search is on label/filename/notes only.
+### 3. Entry points
+| Location | Element | Action |
+|----------|---------|--------|
+| `BookingDetail` Payments tab | Top-right button "Print Payment History" | Navigate to `/payment-history/{bookingId}` |
+| `DocumentCenter` (after a booking is selected) | New `DocumentList` (currently a placeholder card) — item #3 "Payment History" | Same nav |
+| `Reports` per-client rows | Small "Print Client Statement" button | Same nav |
+| `Bookings` list rows | Printer icon button with tooltip "Print Payment History" | Same nav |
+
+The `DocumentCenter` currently has a placeholder where the doc menu will go. I'll replace that placeholder with a minimal list whose only live entry today is "Payment History" (slot #3 reserved as specified); other entries render as disabled placeholders so the numbering matches the spec.
+
+### 4. Reused infrastructure (no new versions)
+- Letterhead switcher + safe-area logic from `PrintPreviewModal` — extracted into a small `LetterheadFrame` wrapper if needed, otherwise reused inline
+- `src/lib/print.ts` for the actual print trigger
+- `src/lib/format.ts` `fmtPKR` + `fmtDate` for all currency/date rendering
+- JetBrains Mono via the existing font stack already used in PaymentReceipt
+
+## Out of scope (will NOT touch this turn)
+- Editing the Agreement / Allotment / Payment Plan / Receipt templates
+- Changing audit logging or RLS on payments
+- Adding a new database table
+
+## File touch list
+- NEW `src/components/PaymentHistoryDocument.tsx`
+- NEW `src/pages/PaymentHistoryView.tsx`
+- EDIT `src/App.tsx` (add route)
+- EDIT `src/pages/BookingDetail.tsx` (button on Payments tab)
+- EDIT `src/pages/DocumentCenter.tsx` (replace placeholder with doc list)
+- EDIT `src/pages/Reports.tsx` (per-row button)
+- EDIT `src/pages/Bookings.tsx` (printer icon per row)
+- NEW `src/pages/PaymentHistoryDocument.test.tsx` (totals math + tier selection + adjustment-not-in-cash invariant)
+
+## Open questions before I implement
+
+1. **Document Center doc menu.** The current `DocumentCenter` page has a placeholder note ("Document menu … will appear here once Section C is wired up") — the 9-doc list does not exist yet. Do you want me to (a) scaffold the full numbered list with Payment History live and the rest disabled, or (b) just add a single "Payment History" entry until the rest is built?
+
+2. **Overdue figures.** The spec asks for "Overdue Amount" and "Overdue Installments" count. Confirm I should read these from `installment_ledger` (rows where `due_date < today` and `paid_amount < amount_due`). If you have a different definition, name it.
+
+3. **Reports page row identity.** "Per-client section" — does that mean one row per booking (so the print button takes you to that booking's payment history), or one row per client (in which case I need a client→booking picker)? I'll assume **per-booking** unless you say otherwise.
+
+4. **Adjustment "asset description" field.** For the Bank/Ref column on Adjustment rows the spec says "show asset description (first 25 chars)". I'll source this from `payments.notes` truncated to 25 chars — confirm or point me at a different column.
+
+Approve with answers (or "go with your defaults") and I'll build it end-to-end.

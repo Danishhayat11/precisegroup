@@ -225,6 +225,13 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           title: "Save blocked — Cash Received would change",
           description: "See the highlighted fields for details.",
         });
+        // Focus Payment Type and briefly scroll/flash the Amount field
+        setTimeout(() => {
+          paymentTypeRef.current?.focus();
+          paymentTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          amountRef.current?.classList.add("ring-2", "ring-destructive");
+          setTimeout(() => amountRef.current?.classList.remove("ring-2", "ring-destructive"), 1800);
+        }, 50);
         return;
       }
       toast({ variant: "destructive", title: "Save failed", description: raw });

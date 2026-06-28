@@ -402,73 +402,143 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
       </div>
 
-      {/* Cash / Adjustment impact preview */}
+      {/* Cash / Adjustment impact diff */}
       {(() => {
         const isAdj = form.payment_mode === "Adjustment/Asset";
         const amt = Number(form.amount) || 0;
-        const cashDelta = isAdj ? 0 : amt;
-        const adjDelta = isAdj ? amt : 0;
+        const projectedSafeCash = isAdj ? 0 : amt;
+
+        // Old contribution from the row being edited (if any).
+        const prev = totals?.prev ?? null;
+        const prevWasAdj =
+          !!prev && (prev.payment_mode === "Adjustment/Asset" || prev.non_cash_adjustment);
+        const prevCash = Number(prev?.safe_cash_amount ?? 0);
+        const prevAdj = prevWasAdj ? Number(prev?.amount ?? 0) : 0;
+
+        // Net deltas (subtract previous row contribution for edits).
+        const cashDelta = projectedSafeCash - prevCash;
+        const adjDelta = (isAdj ? amt : 0) - prevAdj;
+        const safeCashDelta = projectedSafeCash - prevCash; // same as cashDelta but labeled separately
+
         const curCash = totals?.cashTotal ?? 0;
         const curAdj = totals?.adjTotal ?? 0;
+
+        const fmtDelta = (n: number) => {
+          if (Math.abs(n) < 0.005) return "PKR 0  (unchanged)";
+          const sign = n > 0 ? "+" : "−";
+          return `${sign} ${fmtPKR(Math.abs(n))}`;
+        };
+        const deltaTone = (n: number, neutralOnZero = true) => {
+          if (Math.abs(n) < 0.005) return neutralOnZero ? "text-muted-foreground" : "text-success";
+          return n > 0 ? "text-success" : "text-destructive";
+        };
+
+        const rows = [
+          {
+            key: "cash_total",
+            label: "cash_total",
+            sub: "Σ payments.safe_cash_amount",
+            before: curCash,
+            after: curCash + cashDelta,
+            delta: cashDelta,
+            mustBeZero: isAdj,
+          },
+          {
+            key: "adjustment_total",
+            label: "adjustment_total",
+            sub: "Σ payments.amount where Adjustment/Asset",
+            before: curAdj,
+            after: curAdj + adjDelta,
+            delta: adjDelta,
+            mustBeZero: false,
+            tone: "adjustment" as const,
+          },
+          {
+            key: "projected_safe_cash_amount",
+            label: "projected_safe_cash_amount",
+            sub: "this entry only",
+            before: prevCash,
+            after: projectedSafeCash,
+            delta: safeCashDelta,
+            mustBeZero: isAdj,
+          },
+        ];
+
         return (
           <div className={cn(
             "rounded-md border p-3 text-xs",
             isAdj ? "border-adjustment/40 bg-adjustment/5" : "border-border bg-muted/30"
           )}>
             <div className="font-semibold text-foreground mb-2 flex items-center justify-between">
-              <span>Impact preview {isAdj && <span className="text-adjustment">· Adjustment/Asset entry</span>}</span>
+              <span>
+                Impact diff
+                {isEdit && <span className="ml-1 text-[10px] text-muted-foreground">(net of previous values)</span>}
+                {isAdj && <span className="text-adjustment"> · Adjustment/Asset entry</span>}
+              </span>
               {isAdj && (
                 <span className="text-[10px] uppercase tracking-wide text-adjustment font-semibold">
-                  Cash Received must not change
+                  cash_total must not change
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">Current Cash Total</div>
-                <div className="tabular-nums font-semibold">{fmtPKR(curCash)}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">Current Adjustment Total</div>
-                <div className="tabular-nums font-semibold text-adjustment">{fmtPKR(curAdj)}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">Cash Δ after save</div>
-                <div className={cn(
-                  "tabular-nums font-semibold",
-                  cashDelta === 0 ? "text-muted-foreground" : "text-success"
-                )}>
-                  {cashDelta === 0 ? "PKR 0  (unchanged)" : `+ ${fmtPKR(cashDelta)}`}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase text-muted-foreground">Adjustment Δ after save</div>
-                <div className={cn(
-                  "tabular-nums font-semibold",
-                  adjDelta === 0 ? "text-muted-foreground" : "text-adjustment"
-                )}>
-                  {adjDelta === 0 ? "PKR 0  (unchanged)" : `+ ${fmtPKR(adjDelta)}`}
-                </div>
-              </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px] tabular-nums">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase text-muted-foreground">
+                    <th className="py-1 pr-2 font-medium">Total</th>
+                    <th className="py-1 px-2 font-medium text-right">Before</th>
+                    <th className="py-1 px-2 font-medium text-right">After</th>
+                    <th className="py-1 pl-2 font-medium text-right">Δ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const violated = r.mustBeZero && Math.abs(r.delta) > 0.005;
+                    return (
+                      <tr key={r.key} className="border-t border-border/40">
+                        <td className="py-1.5 pr-2">
+                          <div className={cn("font-mono", r.tone === "adjustment" && "text-adjustment")}>
+                            {r.label}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">{r.sub}</div>
+                        </td>
+                        <td className="py-1.5 px-2 text-right">{fmtPKR(r.before)}</td>
+                        <td className={cn(
+                          "py-1.5 px-2 text-right font-semibold",
+                          violated && "text-destructive"
+                        )}>
+                          {fmtPKR(r.after)}
+                        </td>
+                        <td className={cn(
+                          "py-1.5 pl-2 text-right font-semibold",
+                          violated ? "text-destructive" : deltaTone(r.delta)
+                        )}>
+                          {fmtDelta(r.delta)}
+                          {violated && <span className="ml-1">⚠</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="mt-2 pt-2 border-t border-border/60 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="md:col-span-2">
-                <div className="text-[10px] uppercase text-muted-foreground">Projected Cash Total</div>
-                <div className="tabular-nums font-semibold">{fmtPKR(curCash + cashDelta)}</div>
-              </div>
-              <div className="md:col-span-2">
-                <div className="text-[10px] uppercase text-muted-foreground">Projected Adjustment Total</div>
-                <div className="tabular-nums font-semibold text-adjustment">{fmtPKR(curAdj + adjDelta)}</div>
-              </div>
-            </div>
-            {isAdj && cashDelta === 0 && (
+
+            {isAdj && Math.abs(cashDelta) < 0.005 && Math.abs(safeCashDelta) < 0.005 && (
               <p className="text-[11px] text-success mt-2">
-                ✓ safe_cash_amount = 0 — Cash Received totals will stay locked.
+                ✓ cash_total and safe_cash_amount both unchanged — save is safe.
+              </p>
+            )}
+            {isAdj && (Math.abs(cashDelta) > 0.005 || Math.abs(safeCashDelta) > 0.005) && (
+              <p className="text-[11px] text-destructive mt-2">
+                ✗ This Adjustment/Asset would move cash totals — the database will reject the save.
               </p>
             )}
           </div>
         );
       })()}
+
+
 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

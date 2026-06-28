@@ -431,6 +431,78 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
               Adjustment/Asset entries are excluded from Cash Received totals.
             </p>
           ) : null}
+          {blockedAudit && (() => {
+            const help: Record<string, { summary: string; fix: string }> = {
+              adjustment_safe_cash_not_zero: {
+                summary: "An Adjustment/Asset entry tried to keep a non-zero cash amount, which would inflate Cash Received.",
+                fix: "Switch Payment Type to Cash or Bank Transfer if money was actually received, or keep it as Adjustment/Asset and let the system zero the cash side.",
+              },
+              type_conversion_blocked: {
+                summary: "You are converting an existing Cash/Bank payment into Adjustment/Asset — Cash Received would drop retroactively.",
+                fix: "Change Payment Type back to its original value, or delete this payment and create a fresh Adjustment/Asset entry instead.",
+              },
+              adjustment_flag_missing: {
+                summary: "The non-cash adjustment flag was not set on an Adjustment/Asset row.",
+                fix: "Change Payment Type to Cash/Bank for real receipts, or re-select Adjustment/Asset so the flags are written correctly.",
+              },
+              cash_bank_include_inconsistent: {
+                summary: "The row was marked as included in Cash/Bank totals but typed Adjustment/Asset — those two cannot coexist.",
+                fix: "Pick one Payment Type and re-save: Cash/Bank Transfer to count toward Cash Received, or Adjustment/Asset to exclude it.",
+              },
+              non_cash_flag_on_cash_row: {
+                summary: "A Cash or Bank Transfer row was flagged as a non-cash adjustment.",
+                fix: "Switch Payment Type to Adjustment/Asset if this is not a real receipt, otherwise re-select Cash/Bank Transfer.",
+              },
+              cash_amount_mismatch: {
+                summary: "Amount and the internal cash-side amount disagree for a Cash/Bank row.",
+                fix: "Re-enter the Amount — saving will rewrite the cash side to match.",
+              },
+              duplicate_receipt: {
+                summary: "A payment with this receipt number already exists.",
+                fix: "Open the existing payment to edit it, or generate a new receipt number.",
+              },
+              missing_reference: {
+                summary: "The booking (or related record) referenced by this payment does not exist.",
+                fix: "Re-select the Booking from the picker.",
+              },
+              missing_required_field: {
+                summary: "A required field was empty when the database tried to save.",
+                fix: "Fill in the highlighted field and try again.",
+              },
+              bad_value_format: {
+                summary: "One of the values had an invalid format (number, date, or ID).",
+                fix: "Check the Amount and Payment Date fields for typos.",
+              },
+              permission_denied: {
+                summary: "Your role does not allow this change.",
+                fix: "Ask an admin to make the change, or request the staff role.",
+              },
+              "cash_invariant.generic": {
+                summary: "The database refused the save because it would change Cash Received totals.",
+                fix: "Review Payment Type and Amount; for non-cash items use Adjustment/Asset.",
+              },
+              unknown: {
+                summary: "The database refused the save with an unrecognized error.",
+                fix: "Check the audit-log entry below for the raw message.",
+              },
+            };
+            const info = help[blockedAudit.failed_condition] || help.unknown;
+            return (
+              <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-[11px] leading-snug">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="font-semibold text-destructive">Why it was blocked</span>
+                  <code className="font-mono text-[10px] bg-destructive/10 text-destructive rounded px-1 py-0.5">
+                    {blockedAudit.failed_condition}
+                  </code>
+                </div>
+                <p className="text-foreground">{info.summary}</p>
+                <p className="mt-1 text-muted-foreground">
+                  <span className="font-semibold text-foreground">What to do: </span>
+                  {info.fix}
+                </p>
+              </div>
+            );
+          })()}
         </div>
         <div>
           <div className="flex items-baseline justify-between">

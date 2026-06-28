@@ -244,7 +244,12 @@ describe("Payments: deep-link route guard keeps PaymentForm inaccessible until l
     );
 
     // Button is no longer disabled now that the latest prefill is in.
-    expect(screen.getByRole("button", { name: /record payment/i })).not.toBeDisabled();
+    // (Radix Dialog sets aria-hidden on the rest of the page while open,
+    // so query with { hidden: true } to reach the underlying button.)
+    expect(
+      screen.getByRole("button", { name: /record payment/i, hidden: true }),
+    ).not.toBeDisabled();
+
 
     // Form mounted EXACTLY ONCE with AUDIT-G's prefill — no empty
     // mount snuck through during the pending window.

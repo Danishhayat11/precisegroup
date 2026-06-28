@@ -31,6 +31,20 @@ export default function DocumentView() {
   const bookingId = params.get("booking") ?? "";
   const [selected, setSelected] = useState(bookingId);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [tcsOpen, setTcsOpen] = useState(false);
+  const [tcsNo, setTcsNo] = useState("");
+  const [tcsSaving, setTcsSaving] = useState(false);
+  const { toast } = useToast();
+
+  const noticeLabelFor = (t: string) =>
+    t === "legal-notice"
+      ? "Legal Notice Sent"
+      : t === "final-legal-notice"
+      ? "Final Legal Notice Sent"
+      : t === "cancellation-notice"
+      ? "Cancellation Notice Sent"
+      : null;
+  const noticeLabel = noticeLabelFor(type);
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["doc-bookings"],

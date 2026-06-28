@@ -179,8 +179,12 @@ describe("'Start a fresh payment instead' clears cached audit/receipt payload", 
     expect(screen.getByTestId("pf-audit").textContent).toBe("audit-good");
     expect(auditFetches).toEqual(["audit-good"]);
 
-    // === Stage 2: user cancels the dialog (clears replayInitial state) ===
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    // === Stage 2: user closes the dialog (clears replayInitial state) ===
+    // PaymentForm is mocked so there's no in-form Cancel; close via the
+    // shadcn Dialog's built-in "Close" affordance which triggers
+    // onOpenChange(false) — same path the X icon click takes.
+    fireEvent.click(screen.getByRole("button", { name: /^close$/i }));
+
     await waitFor(() =>
       expect(screen.queryByTestId("payment-form-stub")).not.toBeInTheDocument(),
     );

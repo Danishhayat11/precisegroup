@@ -19,7 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { fmtPKR } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
-import { logPaymentBlocked, type PaymentBlockedAuditEntry } from "@/lib/audit";
+import { logPaymentBlocked, logPaymentUnlock, type PaymentBlockedAuditEntry } from "@/lib/audit";
 import { mapPaymentError } from "@/lib/paymentErrors";
 import { Link } from "react-router-dom";
 import { ShieldAlert, ExternalLink, FileSearch, History, ChevronDown } from "lucide-react";

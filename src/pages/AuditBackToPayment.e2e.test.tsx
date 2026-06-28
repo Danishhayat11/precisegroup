@@ -116,14 +116,14 @@ describe("AuditLog -> Payments back-link e2e", () => {
       "/payments?openReceipt=PAY-00042&audit=aud-blocked-1"
     );
 
-    // 2. Click — loading state must appear before navigation completes.
+    // 2. Click — loading state appears synchronously before the deferred
+    //    navigation (setTimeout 0) runs.
     fireEvent.click(link);
-    await waitFor(() =>
-      expect(screen.getByText(/opening payment form/i)).toBeInTheDocument()
-    );
-    // The link is aria-busy while loading.
-    const busy = screen.getByText(/opening payment form/i).closest("a");
-    expect(busy?.getAttribute("aria-busy")).toBe("true");
+    const busyText = screen.getByText(/opening payment form/i);
+    expect(busyText).toBeInTheDocument();
+    expect(busyText.closest("a")?.getAttribute("aria-busy")).toBe("true");
+    // Spinner icon is rendered alongside the label.
+    expect(busyText.closest("a")?.querySelector("svg.animate-spin")).not.toBeNull();
 
     // 3. Navigation happens on next tick — Payments mounts, fetches audit
     //    row, opens the dialog, and renders PaymentForm with prefill.

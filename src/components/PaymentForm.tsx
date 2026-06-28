@@ -63,11 +63,15 @@ interface PaymentFormProps {
   initial?: Partial<PaymentFormValue> & { booking_id?: string };
   onSaved: (receiptNo: string) => void;
   onCancel: () => void;
+  /** When true, treat as a new save even if a receipt_no is preset (e.g. replaying a blocked attempt). */
+  replayBlocked?: boolean;
+  /** Audit-log row id to auto-open in the blocked-audit drawer on mount. */
+  prefillAuditId?: string | null;
 }
 
-export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
+export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId }: PaymentFormProps) {
   const { toast } = useToast();
-  const isEdit = Boolean(initial?.receipt_no);
+  const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
   const [form, setForm] = useState<PaymentFormValue>({
     receipt_no: initial?.receipt_no ?? "",
     booking_id: initial?.booking_id ?? "",

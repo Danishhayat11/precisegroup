@@ -204,7 +204,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       if (mapped.isCashInvariant) {
         setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
 
-        void logPaymentBlocked({
+        const auditEntry = await logPaymentBlocked({
           receiptNo: form.receipt_no,
           bookingId: form.booking_id,
           paymentMode: form.payment_mode,
@@ -212,6 +212,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           failedCondition: mapped.failedCondition,
           rawError: raw,
         });
+        setBlockedAudit(auditEntry);
 
         toast({
           variant: "destructive",

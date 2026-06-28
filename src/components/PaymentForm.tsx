@@ -166,7 +166,10 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     setErrors((e) => ({ ...e, [k as string]: "" }));
     // Unlock when the user toggles any adjustment / non-cash option that
     // could resolve the block (Payment Type, Amount, or Payment Head).
-    if (blockedAudit && UNLOCK_KEYS.has(k)) setBlockedAudit(null);
+    if (blockedAudit && UNLOCK_KEYS.has(k)) {
+      setBlockedAudit(null);
+      setBlockedPayload(null);
+    }
   };
 
   // Form is locked after a Postgres trigger block until Payment Type changes.

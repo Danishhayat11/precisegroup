@@ -81,6 +81,23 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       (await supabase.from("bookings").select("booking_id,client_name,unit_id").order("client_name")).data ?? [],
   });
 
+  // Live totals — used to preview the Cash / Adjustment impact of this entry.
+  const { data: totals } = useQuery({
+    queryKey: ["payment-totals-preview"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payments")
+        .select("amount,safe_cash_amount,payment_mode,non_cash_adjustment");
+      const rows = data ?? [];
+      const cashTotal = rows.reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      const adjTotal = rows
+        .filter((r: any) => r.payment_mode === "Adjustment/Asset" || r.non_cash_adjustment)
+        .reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0);
+      return { cashTotal, adjTotal };
+    },
+    staleTime: 5_000,
+  });
+
   useEffect(() => {
     if (!isEdit && !form.receipt_no) {
       nextPaymentId().then((id) => setForm((f) => ({ ...f, receipt_no: id })));

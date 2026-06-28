@@ -59,6 +59,11 @@ export default function Bookings() {
       (await supabase.from("bookings").select("*").order("booking_date", { ascending: false })).data ?? [],
   });
 
+  const { data: docSummaries = {} } = useQuery({
+    queryKey: ["booking-document-summaries"],
+    queryFn: fetchDocSummaries,
+  });
+
   const filtered = useMemo(() => {
     const lq = search.trim().toLowerCase();
     return rows.filter((b: any) => {

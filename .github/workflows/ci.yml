@@ -24,6 +24,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Catch type regressions BEFORE running any tests — a broken type
+      # signature usually surfaces here as a clear compiler error instead
+      # of a noisy runtime failure deep inside a Vitest assertion.
+      - name: TypeScript typecheck (tsc --noEmit)
+        run: bunx tsc -p tsconfig.json --noEmit
+
+
+
       # Hard-fail on any regression in the Payments-related integration tests.
       # These are the highest-signal tests for the audit-log <-> Payments flow
       # (replay error banner, back-to-payment link, locked-field tooltips).
@@ -61,8 +69,14 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
+      # Same typecheck gate as the Vitest job so a type regression fails
+      # the E2E lane fast, before the (slower) build + browser steps run.
+      - name: TypeScript typecheck (tsc --noEmit)
+        run: bunx tsc -p tsconfig.json --noEmit
+
       - name: Build app
         run: bun run build
+
 
       - name: Run Playwright tests
         run: bunx playwright test --reporter=list

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -21,6 +21,7 @@ import { CalendarIcon, FileText, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentForm, PAYMENT_TYPES } from "@/components/PaymentForm";
 import { PaymentReceipt } from "@/components/PaymentReceipt";
+import { buildReplayInitial } from "@/lib/paymentReplay";
 
 export default function Payments() {
   const qc = useQueryClient();
@@ -42,8 +43,15 @@ export default function Payments() {
 
   // Honor /payments?openReceipt=PAY-00012&audit=<id> from the audit log back link.
   // Fetch the audit row's `after` payload, prefill the form, and pop the dialog.
-  useMemo(() => {
+  //
+  // The URL params are intentionally LEFT IN PLACE while the dialog is open so
+  // a browser refresh re-runs this effect and prefills the form again with the
+  // exact same receipt + attempt. The params are cleared only when the dialog
+  // is dismissed (cancel / save / close) so re-opening Payments later doesn't
+  // re-pop the dialog.
+  useEffect(() => {
     if (!openReceiptParam) return;
+    let cancelled = false;
     (async () => {
       let after: Record<string, any> = {};
       if (auditIdParam) {
@@ -54,22 +62,23 @@ export default function Payments() {
           .maybeSingle();
         after = (data?.after ?? {}) as Record<string, any>;
       }
-      setReplayInitial({
-        receipt_no: openReceiptParam,
-        booking_id: after.booking_id ?? "",
-        payment_mode: after.payment_mode,
-        amount: Number(after.amount) || 0,
-      });
+      if (cancelled) return;
+      const initial = buildReplayInitial(openReceiptParam, after);
+      if (!initial) return;
+      setReplayInitial(initial);
       setReplayAuditId(auditIdParam ?? null);
       setCreateOpen(true);
-      // Strip the params so a refresh / cancel doesn't keep reopening the dialog.
-      const next = new URLSearchParams(params);
-      next.delete("openReceipt");
-      next.delete("audit");
-      setParams(next, { replace: true });
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
   }, [openReceiptParam, auditIdParam]);
+
+  const clearReplayParams = () => {
+    const next = new URLSearchParams(params);
+    next.delete("openReceipt");
+    next.delete("audit");
+    setParams(next, { replace: true });
+  };
+
 
   const { data: rows = [] } = useQuery({
     queryKey: ["payments"],
@@ -249,7 +258,7 @@ export default function Payments() {
         open={createOpen}
         onOpenChange={(o) => {
           setCreateOpen(o);
-          if (!o) { setReplayInitial(null); setReplayAuditId(null); }
+          if (!o) { setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }
         }}
       >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -266,17 +275,19 @@ export default function Payments() {
             initial={replayInitial ?? (bookingFilter ? { booking_id: bookingFilter } : undefined)}
             replayBlocked={!!replayInitial}
             prefillAuditId={replayAuditId}
-            onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); }}
+            onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }}
             onSaved={(no) => {
               setCreateOpen(false);
               setReplayInitial(null);
               setReplayAuditId(null);
+              clearReplayParams();
               qc.invalidateQueries({ queryKey: ["payments"] });
               setReceiptNo(no);
             }}
           />
         </DialogContent>
       </Dialog>
+
 
 
       <PaymentReceipt open={!!receiptNo} onOpenChange={(o) => !o && setReceiptNo(null)} receiptNo={receiptNo} />

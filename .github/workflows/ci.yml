@@ -30,6 +30,16 @@ jobs:
       - name: TypeScript typecheck (tsc --noEmit)
         run: bunx tsc -p tsconfig.json --noEmit
 
+      # ESLint runs right after typecheck so style + correctness issues
+      # (unused vars, no-explicit-any, hook deps, a11y rules, etc.) block
+      # the PR before the test suite spins up. Uses the project's `lint`
+      # script (`eslint .`) so the same config applies locally and in CI.
+      # `--max-warnings=0` promotes any warning to a failure too.
+      - name: ESLint
+        run: bun run lint -- --max-warnings=0
+
+
+
 
 
       # Hard-fail on any regression in the Payments-related integration tests.

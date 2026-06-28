@@ -183,6 +183,23 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           payment_mode: friendly,
           amount: form.payment_mode === "Adjustment/Asset" ? "Amount is recorded on the Adjustments register, not Cash Received." : "",
         }));
+        // Identify which trigger condition fired (for the audit trail).
+        let failedCondition = "cash_invariant.generic";
+        if (/Cannot convert payment/i.test(raw)) failedCondition = "type_conversion_blocked";
+        else if (/safe_cash_amount = 0/i.test(raw)) failedCondition = "adjustment_safe_cash_not_zero";
+        else if (/non_cash_adjustment = true/i.test(raw)) failedCondition = "adjustment_flag_missing";
+        else if (/cash_bank_include = false/i.test(raw)) failedCondition = "cash_bank_include_inconsistent";
+        else if (/safe_cash_amount.*must equal amount/i.test(raw)) failedCondition = "cash_amount_mismatch";
+
+        void logPaymentBlocked({
+          receiptNo: form.receipt_no,
+          bookingId: form.booking_id,
+          paymentMode: form.payment_mode,
+          amount: form.amount,
+          failedCondition,
+          rawError: raw,
+        });
+
         toast({
           variant: "destructive",
           title: "Save blocked — Cash Received would change",

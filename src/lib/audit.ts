@@ -78,6 +78,16 @@ export function logDocumentEditDebounced(p: DocAuditPayload, delayMs = 2500) {
  * Captures actor, payment id, booking id, payment mode, amount, and the
  * failed condition message from Postgres.
  */
+export interface PaymentBlockedAuditEntry {
+  id: string;
+  actor_id: string;
+  actor_email: string | null;
+  actor_full_name: string | null;
+  failed_condition: string;
+  receipt_no: string;
+  created_at: string;
+}
+
 export async function logPaymentBlocked(p: {
   receiptNo: string;
   bookingId: string;
@@ -85,10 +95,10 @@ export async function logPaymentBlocked(p: {
   amount: number;
   failedCondition: string;
   rawError?: string;
-}): Promise<void> {
+}): Promise<PaymentBlockedAuditEntry | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return null;
 
     let actor_email: string | null = user.email ?? null;
     let full_name: string | null = null;
@@ -104,24 +114,40 @@ export async function logPaymentBlocked(p: {
       }
     } catch { /* ignore */ }
 
-    await supabase.from("audit_logs").insert({
-      actor_id: user.id,
-      actor_email,
-      action: "payment.save.blocked",
-      entity: "payment",
-      entity_id: p.receiptNo,
-      after: {
-        receipt_no: p.receiptNo,
-        booking_id: p.bookingId,
-        payment_mode: p.paymentMode,
-        amount: p.amount,
-        failed_condition: p.failedCondition,
-        raw_error: p.rawError ?? null,
-        actor_full_name: full_name,
-      },
-    });
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .insert({
+        actor_id: user.id,
+        actor_email,
+        action: "payment.save.blocked",
+        entity: "payment",
+        entity_id: p.receiptNo,
+        after: {
+          receipt_no: p.receiptNo,
+          booking_id: p.bookingId,
+          payment_mode: p.paymentMode,
+          amount: p.amount,
+          failed_condition: p.failedCondition,
+          raw_error: p.rawError ?? null,
+          actor_full_name: full_name,
+        },
+      })
+      .select("id, actor_id, actor_email, created_at")
+      .single();
+
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      actor_id: data.actor_id,
+      actor_email: data.actor_email,
+      actor_full_name: full_name,
+      failed_condition: p.failedCondition,
+      receipt_no: p.receiptNo,
+      created_at: data.created_at,
+    };
   } catch {
-    /* swallow */
+    return null;
   }
 }
+
 

@@ -19,8 +19,10 @@ import {
 import { cn } from "@/lib/utils";
 import { fmtPKR } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
-import { logPaymentBlocked } from "@/lib/audit";
+import { logPaymentBlocked, type PaymentBlockedAuditEntry } from "@/lib/audit";
 import { mapPaymentError } from "@/lib/paymentErrors";
+import { Link } from "react-router-dom";
+import { ShieldAlert, ExternalLink } from "lucide-react";
 
 export const PAYMENT_TYPES = ["Cash", "Bank Transfer", "Adjustment/Asset"] as const;
 export const PAYMENT_HEADS = ["Down Payment", "Installment", "Possession", "Advance", "Extra Payment"] as const;
@@ -76,6 +78,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [blockedAudit, setBlockedAudit] = useState<PaymentBlockedAuditEntry | null>(null);
   const paymentTypeRef = useRef<HTMLButtonElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -118,6 +121,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));
+    if (blockedAudit) setBlockedAudit(null);
   };
 
   const handleSave = async () => {
@@ -201,7 +205,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       if (mapped.isCashInvariant) {
         setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
 
-        void logPaymentBlocked({
+        const auditEntry = await logPaymentBlocked({
           receiptNo: form.receipt_no,
           bookingId: form.booking_id,
           paymentMode: form.payment_mode,
@@ -209,6 +213,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           failedCondition: mapped.failedCondition,
           rawError: raw,
         });
+        setBlockedAudit(auditEntry);
 
         toast({
           variant: "destructive",
@@ -401,6 +406,60 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           </Select>
         </div>
       </div>
+
+      {/* Audit log surfacing — appears when a save was rejected */}
+      {blockedAudit && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs"
+        >
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-destructive">
+                Save rejected — recorded to Audit Log
+              </div>
+              <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                <div>
+                  <span className="text-muted-foreground">Actor: </span>
+                  <span className="font-medium">
+                    {blockedAudit.actor_full_name || blockedAudit.actor_email || blockedAudit.actor_id}
+                  </span>
+                  {blockedAudit.actor_full_name && blockedAudit.actor_email && (
+                    <span className="text-muted-foreground"> ({blockedAudit.actor_email})</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">When: </span>
+                  <span className="font-medium tabular-nums">
+                    {new Date(blockedAudit.created_at).toLocaleString("en-PK")}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Failed condition: </span>
+                  <code className="rounded bg-destructive/10 px-1 py-0.5 font-mono text-[10px] text-destructive">
+                    {blockedAudit.failed_condition}
+                  </code>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Receipt: </span>
+                  <span className="font-mono">{blockedAudit.receipt_no}</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-muted-foreground">Audit ID: </span>
+                  <span className="font-mono text-[10px]">{blockedAudit.id}</span>
+                </div>
+              </div>
+              <Link
+                to={`/audit?highlight=${blockedAudit.id}`}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
+              >
+                Open in Audit Log <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cash / Adjustment impact diff */}
       {(() => {

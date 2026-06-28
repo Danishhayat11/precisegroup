@@ -72,3 +72,56 @@ export function logDocumentEditDebounced(p: DocAuditPayload, delayMs = 2500) {
     }, delayMs),
   );
 }
+
+/**
+ * Log a blocked payment save (Adjustment/Asset trigger or other invariant).
+ * Captures actor, payment id, booking id, payment mode, amount, and the
+ * failed condition message from Postgres.
+ */
+export async function logPaymentBlocked(p: {
+  receiptNo: string;
+  bookingId: string;
+  paymentMode: string;
+  amount: number;
+  failedCondition: string;
+  rawError?: string;
+}): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let actor_email: string | null = user.email ?? null;
+    let full_name: string | null = null;
+    try {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof) {
+        actor_email = prof.email ?? actor_email;
+        full_name = (prof as any).full_name ?? null;
+      }
+    } catch { /* ignore */ }
+
+    await supabase.from("audit_logs").insert({
+      actor_id: user.id,
+      actor_email,
+      action: "payment.save.blocked",
+      entity: "payment",
+      entity_id: p.receiptNo,
+      after: {
+        receipt_no: p.receiptNo,
+        booking_id: p.bookingId,
+        payment_mode: p.paymentMode,
+        amount: p.amount,
+        failed_condition: p.failedCondition,
+        raw_error: p.rawError ?? null,
+        actor_full_name: full_name,
+      },
+    });
+  } catch {
+    /* swallow */
+  }
+}
+

@@ -461,6 +461,8 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
               >
                 Open in Audit Log <ExternalLink className="h-3 w-3" />
               </Link>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                🔒 Form locked. Change <span className="font-semibold text-foreground">Payment Type</span> above to unlock and edit the rest of the fields.
             </div>
           </div>
         </div>

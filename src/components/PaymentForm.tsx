@@ -422,7 +422,29 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           ) : null}
         </div>
         <div>
-          <Label>Amount (PKR) *</Label>
+          <div className="flex items-baseline justify-between">
+            <Label>Amount (PKR) *</Label>
+            {form.payment_mode === "Adjustment/Asset" && (() => {
+              // The cash invariant rule sets safe_cash_amount = 0 for Adjustment/Asset
+              // regardless of amount → the rule itself imposes NO upper bound on amount.
+              // The practical cap is the booking's remaining balance.
+              const remaining = Number((selectedBooking as any)?.remaining_balance);
+              const fallback = bookingImpact
+                ? Math.max(0, (Number((selectedBooking as any)?.total_contract_value) || 0) - bookingImpact.totalPaid)
+                : null;
+              const cap = Number.isFinite(remaining) ? remaining : fallback;
+              return (
+                <button
+                  type="button"
+                  onClick={() => cap != null && set("amount", Math.round(cap))}
+                  className="text-[10px] text-adjustment hover:underline tabular-nums"
+                  title="Cash rule imposes no cap (safe_cash_amount is forced to 0). Click to use remaining balance."
+                >
+                  Max safe: {cap != null ? fmtPKR(cap) : "unlimited"} ↑
+                </button>
+              );
+            })()}
+          </div>
           <Input
             ref={amountRef}
             type="number"
@@ -432,6 +454,12 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             onChange={(e) => set("amount", Number(e.target.value || 0))}
             className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}
           />
+          {form.payment_mode === "Adjustment/Asset" && (
+            <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+              The <code className="font-mono">safe_cash_amount</code> rule does not cap Adjustment/Asset
+              amounts (cash side is forced to 0). The cap shown is the booking's remaining balance.
+            </p>
+          )}
           <Err k="amount" />
         </div>
         <div>

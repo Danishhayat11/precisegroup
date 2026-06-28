@@ -40,6 +40,12 @@ export default function Payments() {
     (Partial<import("@/components/PaymentForm").PaymentFormValue> & { booking_id?: string }) | null
   >(null);
   const [replayAuditId, setReplayAuditId] = useState<string | null>(null);
+  const [replayError, setReplayError] = useState<{
+    title: string;
+    detail: string;
+    receiptNo?: string | null;
+    auditId?: string | null;
+  } | null>(null);
 
   // Honor /payments?openReceipt=PAY-00012&audit=<id> from the audit log back link.
   // Fetch the audit row's `after` payload, prefill the form, and pop the dialog.
@@ -53,18 +59,67 @@ export default function Payments() {
     if (!openReceiptParam) return;
     let cancelled = false;
     (async () => {
-      let after: Record<string, any> = {};
+      setReplayError(null);
+      let after: Record<string, any> | null = null;
+      let auditMissing = false;
+      let fetchFailed: string | null = null;
+
       if (auditIdParam) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("audit_logs")
-          .select("after")
+          .select("after, entity_id")
           .eq("id", auditIdParam)
           .maybeSingle();
-        after = (data?.after ?? {}) as Record<string, any>;
+        if (cancelled) return;
+        if (error) {
+          fetchFailed = error.message || "Audit lookup failed.";
+        } else if (!data) {
+          auditMissing = true;
+        } else {
+          after = (data.after ?? {}) as Record<string, any>;
+          // Sanity-check that the audit row actually belongs to this receipt.
+          if (data.entity_id && data.entity_id !== openReceiptParam) {
+            setReplayError({
+              title: "Audit entry doesn't match this receipt",
+              detail: `Audit ${auditIdParam} was recorded against ${data.entity_id}, not ${openReceiptParam}. The URL may have been edited manually.`,
+              receiptNo: openReceiptParam,
+              auditId: auditIdParam,
+            });
+            return;
+          }
+        }
       }
+
       if (cancelled) return;
+
+      if (fetchFailed) {
+        setReplayError({
+          title: "Couldn't load the blocked attempt",
+          detail: `${fetchFailed} Try opening it again from the Audit Log.`,
+          receiptNo: openReceiptParam,
+          auditId: auditIdParam,
+        });
+        return;
+      }
+
+      if (auditMissing) {
+        setReplayError({
+          title: "Audit entry not found",
+          detail: `No blocked-save record exists for audit id ${auditIdParam}. It may have been pruned, or the link is stale.`,
+          receiptNo: openReceiptParam,
+          auditId: auditIdParam,
+        });
+        return;
+      }
+
       const initial = buildReplayInitial(openReceiptParam, after);
-      if (!initial) return;
+      if (!initial) {
+        setReplayError({
+          title: "Missing receipt in the URL",
+          detail: "The back link did not include a receipt number, so the Payment form can't be prefilled.",
+        });
+        return;
+      }
       setReplayInitial(initial);
       setReplayAuditId(auditIdParam ?? null);
       setCreateOpen(true);

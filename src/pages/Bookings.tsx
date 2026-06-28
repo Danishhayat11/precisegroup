@@ -141,9 +141,9 @@ export default function Bookings() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="text-center text-muted-foreground p-8">Loading…</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground p-8">Loading…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="text-center text-muted-foreground p-10">No bookings match these filters.</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground p-10">No bookings match these filters.</td></tr>
               ) : filtered.map((b: any) => {
                 const wa = buildWaUrl(b);
                 return (

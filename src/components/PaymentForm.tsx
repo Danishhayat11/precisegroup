@@ -217,15 +217,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     [bookings, form.booking_id]
   );
 
-  // Fields whose value materially changes the cash-vs-adjustment outcome.
-  // Toggling any of them should unlock the form after a trigger block — not
-  // just Payment Type — because they're the same knobs the user has to turn
-  // to satisfy the safe_cash_amount invariant.
-  const UNLOCK_KEYS = new Set<keyof PaymentFormValue>([
-    "payment_mode",
-    "amount",
-    "payment_head",
-  ]);
+  // Fields whose value materially changes the cash-vs-adjustment outcome and
+  // are therefore left editable while the form is locked. The live re-check
+  // below decides when the lock actually clears.
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));

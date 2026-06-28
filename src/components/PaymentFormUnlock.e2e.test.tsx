@@ -168,9 +168,13 @@ describe("PaymentForm locked-field unlock — e2e", () => {
     expect(lockState.textContent).toBe("locked");
     expect(notes).toBeDisabled();
 
-    // 2. Attempt to edit — disabled input rejects the change.
-    fireEvent.change(notes, { target: { value: "should be rejected" } });
+    // 2. Attempt to edit — the input carries the `disabled` attribute the
+    //    browser uses to reject keystrokes. (jsdom's fireEvent.change
+    //    bypasses that gate, so we assert the gate itself rather than
+    //    simulating a no-op keystroke.)
+    expect(notes).toHaveAttribute("disabled");
     expect(notes.value).toBe("");
+
 
     // 3. Focus the locked field → tooltip appears with the unlock copy.
     //    LockedTip wraps children in a <span> trigger; focusing that opens

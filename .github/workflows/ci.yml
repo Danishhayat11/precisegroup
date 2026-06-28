@@ -79,10 +79,15 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
-      # Same typecheck gate as the Vitest job so a type regression fails
-      # the E2E lane fast, before the (slower) build + browser steps run.
+      # Same typecheck + lint gates as the Vitest job so a type or lint
+      # regression fails the E2E lane fast, before the (slower) build +
+      # browser steps run.
       - name: TypeScript typecheck (tsc --noEmit)
         run: bunx tsc -p tsconfig.json --noEmit
+
+      - name: ESLint
+        run: bun run lint -- --max-warnings=0
+
 
       - name: Build app
         run: bun run build

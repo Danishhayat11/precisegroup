@@ -17,7 +17,8 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { CalendarIcon, FileText, Plus, Search } from "lucide-react";
+import { AlertTriangle, CalendarIcon, FileText, Plus, Search, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { PaymentForm, PAYMENT_TYPES } from "@/components/PaymentForm";
 import { PaymentReceipt } from "@/components/PaymentReceipt";
@@ -40,6 +41,12 @@ export default function Payments() {
     (Partial<import("@/components/PaymentForm").PaymentFormValue> & { booking_id?: string }) | null
   >(null);
   const [replayAuditId, setReplayAuditId] = useState<string | null>(null);
+  const [replayError, setReplayError] = useState<{
+    title: string;
+    detail: string;
+    receiptNo?: string | null;
+    auditId?: string | null;
+  } | null>(null);
 
   // Honor /payments?openReceipt=PAY-00012&audit=<id> from the audit log back link.
   // Fetch the audit row's `after` payload, prefill the form, and pop the dialog.
@@ -53,18 +60,67 @@ export default function Payments() {
     if (!openReceiptParam) return;
     let cancelled = false;
     (async () => {
-      let after: Record<string, any> = {};
+      setReplayError(null);
+      let after: Record<string, any> | null = null;
+      let auditMissing = false;
+      let fetchFailed: string | null = null;
+
       if (auditIdParam) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("audit_logs")
-          .select("after")
+          .select("after, entity_id")
           .eq("id", auditIdParam)
           .maybeSingle();
-        after = (data?.after ?? {}) as Record<string, any>;
+        if (cancelled) return;
+        if (error) {
+          fetchFailed = error.message || "Audit lookup failed.";
+        } else if (!data) {
+          auditMissing = true;
+        } else {
+          after = (data.after ?? {}) as Record<string, any>;
+          // Sanity-check that the audit row actually belongs to this receipt.
+          if (data.entity_id && data.entity_id !== openReceiptParam) {
+            setReplayError({
+              title: "Audit entry doesn't match this receipt",
+              detail: `Audit ${auditIdParam} was recorded against ${data.entity_id}, not ${openReceiptParam}. The URL may have been edited manually.`,
+              receiptNo: openReceiptParam,
+              auditId: auditIdParam,
+            });
+            return;
+          }
+        }
       }
+
       if (cancelled) return;
+
+      if (fetchFailed) {
+        setReplayError({
+          title: "Couldn't load the blocked attempt",
+          detail: `${fetchFailed} Try opening it again from the Audit Log.`,
+          receiptNo: openReceiptParam,
+          auditId: auditIdParam,
+        });
+        return;
+      }
+
+      if (auditMissing) {
+        setReplayError({
+          title: "Audit entry not found",
+          detail: `No blocked-save record exists for audit id ${auditIdParam}. It may have been pruned, or the link is stale.`,
+          receiptNo: openReceiptParam,
+          auditId: auditIdParam,
+        });
+        return;
+      }
+
       const initial = buildReplayInitial(openReceiptParam, after);
-      if (!initial) return;
+      if (!initial) {
+        setReplayError({
+          title: "Missing receipt in the URL",
+          detail: "The back link did not include a receipt number, so the Payment form can't be prefilled.",
+        });
+        return;
+      }
       setReplayInitial(initial);
       setReplayAuditId(auditIdParam ?? null);
       setCreateOpen(true);
@@ -144,6 +200,52 @@ export default function Payments() {
           </Button>
         }
       />
+
+      {replayError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-destructive">{replayError.title}</div>
+            <div className="mt-1 text-foreground/80">{replayError.detail}</div>
+            {(replayError.receiptNo || replayError.auditId) && (
+              <div className="mt-1 text-[11px] text-muted-foreground font-mono">
+                {replayError.receiptNo && <>receipt: {replayError.receiptNo}</>}
+                {replayError.receiptNo && replayError.auditId && <> · </>}
+                {replayError.auditId && <>audit: {replayError.auditId}</>}
+              </div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+              {replayError.auditId && (
+                <Link
+                  to={`/audit?highlight=${encodeURIComponent(replayError.auditId)}`}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Open Audit Log
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => { setReplayError(null); clearReplayParams(); }}
+                className="font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Start a fresh payment instead
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => { setReplayError(null); clearReplayParams(); }}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
 
       {/* Filter bar */}
       <div className="card-elevated p-3 mb-4 flex flex-wrap items-center gap-3">

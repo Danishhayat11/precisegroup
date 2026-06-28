@@ -47,6 +47,10 @@ export default function Payments() {
     receiptNo?: string | null;
     auditId?: string | null;
   } | null>(null);
+  // Bumped by the Retry button. Used as an effect dependency so the
+  // replay effect re-runs the latest audit fetch (same openReceipt +
+  // audit params) without changing the URL.
+  const [retryNonce, setRetryNonce] = useState(0);
 
   // Honor /payments?openReceipt=PAY-00012&audit=<id> from the audit log back link.
   // Fetch the audit row's `after` payload, prefill the form, and pop the dialog.
@@ -137,7 +141,8 @@ export default function Payments() {
       cancelled = true;
     };
 
-  }, [openReceiptParam, auditIdParam]);
+  }, [openReceiptParam, auditIdParam, retryNonce]);
+
 
   const clearReplayParams = () => {
     const next = new URLSearchParams(params);
@@ -229,6 +234,16 @@ export default function Payments() {
               </div>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+              {replayError.auditId && openReceiptParam && auditIdParam && (
+                <button
+                  type="button"
+                  aria-label="Retry latest audit fetch"
+                  onClick={() => { setReplayError(null); setRetryNonce((n) => n + 1); }}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Retry
+                </button>
+              )}
               {replayError.auditId && (
                 <Link
                   to={`/audit?highlight=${encodeURIComponent(replayError.auditId)}`}

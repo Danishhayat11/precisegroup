@@ -198,6 +198,9 @@ export default function Bookings() {
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit" onClick={() => setEditing(b)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Print Payment History" onClick={() => navigate(`/payment-history/${b.booking_id}`)}>
+                          <Printer className="h-3.5 w-3.5" />
+                        </Button>
                         {wa && (
                           <a href={wa} target="_blank" rel="noopener noreferrer" title="WhatsApp"
                             className="inline-flex items-center justify-center h-7 w-7 rounded-md text-success hover:bg-success/10">

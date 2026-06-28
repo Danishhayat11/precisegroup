@@ -4,11 +4,20 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Printer, Save, RotateCcw, FileText } from "lucide-react";
+import { Printer, Save, RotateCcw, FileText, Send } from "lucide-react";
 import { fmtDate, fmtPKR } from "@/lib/format";
 import { toast } from "sonner";
 import PrintPreviewModal from "@/components/PrintPreviewModal";
+import QuickLogSentDialog from "@/components/QuickLogSentDialog";
 import { logDocumentAction, logDocumentEditDebounced } from "@/lib/audit";
+
+/** Maps a generated document type to the Vault label used by "Mark as Sent". */
+const SENT_LABEL_FOR_TYPE: Partial<Record<string, string>> = {
+  "Legal Notice": "Legal Notice Sent",
+  "Final Legal Notice": "Final Legal Notice Sent",
+  "Cancellation Notice": "Cancellation Notice Sent",
+};
+
 
 type DocType =
   | "Legal Notice"
@@ -270,6 +279,11 @@ export default function BookingDocumentEditor({
   const [text, setText] = useState<string>(baseTemplate);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [markSentOpen, setMarkSentOpen] = useState(false);
+  /** Set to true once the user has previewed/printed, so the Mark-as-Sent button
+   *  isn't tempting before the notice actually leaves the office. */
+  const [hasPrinted, setHasPrinted] = useState(false);
+  const sentLabel = SENT_LABEL_FOR_TYPE[type];
 
   // Load draft (or fall back to template) whenever type changes
   useEffect(() => {
@@ -318,6 +332,7 @@ export default function BookingDocumentEditor({
 
   const handlePrint = () => {
     setPreviewOpen(true);
+    setHasPrinted(true);
     void logDocumentAction({
       action: "document.print",
       documentType: type,
@@ -325,6 +340,7 @@ export default function BookingDocumentEditor({
       bookingId: booking.booking_id,
     });
   };
+
 
 
   // Body sent to the preview modal — strip the textual letterhead block at the
@@ -363,6 +379,21 @@ export default function BookingDocumentEditor({
           <Button size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
+          {sentLabel && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setMarkSentOpen(true)}
+              disabled={!hasPrinted}
+              title={
+                hasPrinted
+                  ? `Log this notice as ${sentLabel.toLowerCase()} in the Document Vault`
+                  : "Print or preview the notice first, then log how it was sent"
+              }
+            >
+              <Send className="h-4 w-4 mr-1" /> Mark as Sent
+            </Button>
+          )}
         </div>
       </div>
       <div className="p-4 bg-muted/30">
@@ -394,6 +425,17 @@ export default function BookingDocumentEditor({
         mode="text"
         body={printBody}
       />
+
+      {sentLabel && (
+        <QuickLogSentDialog
+          open={markSentOpen}
+          onOpenChange={setMarkSentOpen}
+          bookingId={booking.booking_id}
+          label={sentLabel}
+          referenceNo={docRef}
+          documentType={type}
+        />
+      )}
     </div>
   );
 }

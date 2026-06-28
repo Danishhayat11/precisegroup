@@ -141,6 +141,7 @@ export type Database = {
           label_custom: string | null
           mime_type: string | null
           notes: string | null
+          sent_via: string | null
           size_bytes: number | null
           source: string
           storage_path: string | null
@@ -148,6 +149,7 @@ export type Database = {
           updated_at: string
           uploaded_by: string | null
           uploaded_by_name: string | null
+          whatsapp_sent_to: string | null
         }
         Insert: {
           booking_id: string
@@ -159,6 +161,7 @@ export type Database = {
           label_custom?: string | null
           mime_type?: string | null
           notes?: string | null
+          sent_via?: string | null
           size_bytes?: number | null
           source?: string
           storage_path?: string | null
@@ -166,6 +169,7 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           uploaded_by_name?: string | null
+          whatsapp_sent_to?: string | null
         }
         Update: {
           booking_id?: string
@@ -177,6 +181,7 @@ export type Database = {
           label_custom?: string | null
           mime_type?: string | null
           notes?: string | null
+          sent_via?: string | null
           size_bytes?: number | null
           source?: string
           storage_path?: string | null
@@ -184,6 +189,7 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           uploaded_by_name?: string | null
+          whatsapp_sent_to?: string | null
         }
         Relationships: [
           {

@@ -49,6 +49,9 @@ import {
   MANDATORY_LABELS,
   MAX_BYTES,
   ALLOWED_MIME,
+  NOTICE_LABELS,
+  SENT_VIA_OPTIONS,
+  type SentVia,
   deleteDoc,
   downloadDoc,
   fileKind,
@@ -80,6 +83,9 @@ export default function DocumentVault({ bookingId }: Props) {
   const [labelCustom, setLabelCustom] = useState("");
   const [docDate, setDocDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
+  const [sentVia, setSentVia] = useState<SentVia | "">("");
+  const [tcsTracking, setTcsTracking] = useState("");
+  const [whatsappTo, setWhatsappTo] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -142,12 +148,21 @@ export default function DocumentVault({ bookingId }: Props) {
     setLabelCustom("");
     setDocDate(format(new Date(), "yyyy-MM-dd"));
     setNotes("");
+    setSentVia("");
+    setTcsTracking("");
+    setWhatsappTo("");
   }
+
+  const isNoticeLabel = NOTICE_LABELS.has(label);
 
   async function confirmUpload() {
     if (!pendingFile) return;
     if (label === "Other" && !labelCustom.trim()) {
       toast({ variant: "destructive", title: "Custom label required" });
+      return;
+    }
+    if (isNoticeLabel && !sentVia) {
+      toast({ variant: "destructive", title: "Select how this notice was sent" });
       return;
     }
     setUploading(true);
@@ -159,6 +174,15 @@ export default function DocumentVault({ bookingId }: Props) {
         labelCustom: labelCustom.trim() || undefined,
         documentDate: docDate,
         notes: notes.trim() || undefined,
+        sentVia: isNoticeLabel ? (sentVia as SentVia) : null,
+        tcsTrackingNo:
+          isNoticeLabel && (sentVia === "TCS Courier" || sentVia === "Both")
+            ? tcsTracking.trim() || undefined
+            : undefined,
+        whatsappSentTo:
+          isNoticeLabel && (sentVia === "WhatsApp" || sentVia === "Both")
+            ? whatsappTo.trim() || null
+            : null,
       });
       toast({ title: "Document uploaded", description: pendingFile.name });
       setPendingFile(null);
@@ -170,6 +194,7 @@ export default function DocumentVault({ bookingId }: Props) {
       setUploading(false);
     }
   }
+
 
   async function confirmDelete() {
     if (!toDelete) return;
@@ -271,6 +296,7 @@ export default function DocumentVault({ bookingId }: Props) {
               <th className="text-left px-3 py-2 font-medium">File</th>
               <th className="text-right px-3 py-2 font-medium">Size</th>
               <th className="text-left px-3 py-2 font-medium">Date</th>
+              <th className="text-left px-3 py-2 font-medium">Sent Via</th>
               <th className="text-left px-3 py-2 font-medium">Uploaded By</th>
               <th className="text-left px-3 py-2 font-medium">Notes</th>
               <th className="text-right px-3 py-2 font-medium">Actions</th>
@@ -279,13 +305,13 @@ export default function DocumentVault({ bookingId }: Props) {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="text-center text-muted-foreground p-8">
+                <td colSpan={8} className="text-center text-muted-foreground p-8">
                   Loading…
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center text-muted-foreground p-10">
+                <td colSpan={8} className="text-center text-muted-foreground p-10">
                   No documents yet. Click "Upload document" to add the first one.
                 </td>
               </tr>
@@ -316,10 +342,26 @@ export default function DocumentVault({ bookingId }: Props) {
                   <td className="px-3 py-2 text-xs">
                     {format(new Date(d.document_date), "dd-MMM-yyyy")}
                   </td>
+                  <td className="px-3 py-2 text-xs">
+                    {d.sent_via ? (
+                      <div className="flex flex-col">
+                        <span className="font-medium">{d.sent_via}</span>
+                        {d.tcs_tracking_no && (
+                          <span className="text-[10px] text-muted-foreground font-mono">TCS: {d.tcs_tracking_no}</span>
+                        )}
+                        {d.whatsapp_sent_to && (
+                          <span className="text-[10px] text-muted-foreground">WA: {d.whatsapp_sent_to}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-xs">{d.uploaded_by_name ?? "—"}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[220px] truncate" title={d.notes ?? ""}>
                     {d.notes ?? "—"}
                   </td>
+
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-1">
                       <Button
@@ -399,14 +441,61 @@ export default function DocumentVault({ bookingId }: Props) {
                 />
               </div>
             )}
+            {isNoticeLabel && (
+              <div className="rounded-md border border-border bg-muted/30 p-2.5 space-y-2.5">
+                <div className="text-[11px] font-semibold text-foreground">
+                  Delivery details
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    (required for notice/letter records)
+                  </span>
+                </div>
+                <div>
+                  <Label className="text-xs">Sent Via *</Label>
+                  <Select value={sentVia} onValueChange={(v) => setSentVia(v as SentVia)}>
+                    <SelectTrigger><SelectValue placeholder="Select delivery method" /></SelectTrigger>
+                    <SelectContent>
+                      {SENT_VIA_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(sentVia === "TCS Courier" || sentVia === "Both") && (
+                  <div>
+                    <Label className="text-xs">TCS Tracking No.</Label>
+                    <Input
+                      value={tcsTracking}
+                      onChange={(e) => setTcsTracking(e.target.value)}
+                      placeholder="e.g. 1234567890"
+                    />
+                  </div>
+                )}
+                {(sentVia === "WhatsApp" || sentVia === "Both") && (
+                  <div>
+                    <Label className="text-xs">WhatsApp sent to</Label>
+                    <Input
+                      value={whatsappTo}
+                      onChange={(e) => setWhatsappTo(e.target.value)}
+                      placeholder="e.g. +92 333 1234567"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <Label className="text-xs">Date of Document *</Label>
               <Input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+              {isNoticeLabel && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Use this as the date the notice was sent.
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-xs">Notes (optional)</Label>
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
+
           </div>
 
           <DialogFooter>

@@ -121,8 +121,12 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));
-    if (blockedAudit) setBlockedAudit(null);
+    // Only unlock the form when the user actually changes Payment Type.
+    if (blockedAudit && k === "payment_mode") setBlockedAudit(null);
   };
+
+  // Form is locked after a Postgres trigger block until Payment Type changes.
+  const locked = !!blockedAudit;
 
   const handleSave = async () => {
     const parsed = schema.safeParse(form);
@@ -307,7 +311,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           <Label>Payment Date *</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9", !form.payment_date && "text-muted-foreground")}>
+              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal h-9", !form.payment_date && "text-muted-foreground")}>
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 {form.payment_date ? format(new Date(form.payment_date), "dd-MMM-yyyy") : "Pick date"}
               </Button>
@@ -328,7 +332,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           <Label>Booking *</Label>
           <Popover open={bookingOpen} onOpenChange={setBookingOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="w-full justify-between h-9 font-normal">
+              <Button variant="outline" role="combobox" disabled={locked} className="w-full justify-between h-9 font-normal">
                 <span className="truncate">
                   {selectedBooking
                     ? `${selectedBooking.client_name} · ${selectedBooking.booking_id} · ${selectedBooking.unit_id}`
@@ -392,6 +396,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             ref={amountRef}
             type="number"
             min={0}
+            disabled={locked}
             value={form.amount || ""}
             onChange={(e) => set("amount", Number(e.target.value || 0))}
             className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}
@@ -400,7 +405,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
         <div>
           <Label>Payment Head *</Label>
-          <Select value={form.payment_head} onValueChange={(v) => set("payment_head", v as any)}>
+          <Select value={form.payment_head} disabled={locked} onValueChange={(v) => set("payment_head", v as any)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_HEADS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
           </Select>
@@ -456,6 +461,9 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
               >
                 Open in Audit Log <ExternalLink className="h-3 w-3" />
               </Link>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                🔒 Form locked. Change <span className="font-semibold text-foreground">Payment Type</span> above to unlock and edit the rest of the fields.
+              </p>
             </div>
           </div>
         </div>
@@ -604,27 +612,27 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         {form.payment_mode === "Bank Transfer" && (
           <div>
             <Label>Bank Name</Label>
-            <Input value={form.account ?? ""} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
+            <Input value={form.account ?? ""} disabled={locked} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
           </div>
         )}
         <div>
           <Label>Cheque / Reference Number</Label>
-          <Input value={form.cheque_txn_no ?? ""} onChange={(e) => set("cheque_txn_no", e.target.value)} />
+          <Input value={form.cheque_txn_no ?? ""} disabled={locked} onChange={(e) => set("cheque_txn_no", e.target.value)} />
         </div>
         <div>
           <Label>Received By</Label>
-          <Input value={form.posted_by ?? ""} onChange={(e) => set("posted_by", e.target.value)} />
+          <Input value={form.posted_by ?? ""} disabled={locked} onChange={(e) => set("posted_by", e.target.value)} />
         </div>
       </div>
 
       <div>
         <Label>Notes</Label>
-        <Textarea rows={2} value={form.remarks ?? ""} onChange={(e) => set("remarks", e.target.value)} />
+        <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
       </div>
 
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving || locked} title={locked ? "Change Payment Type to unlock" : undefined}>
           {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
           {isEdit ? "Save changes" : "Record payment"}
         </Button>

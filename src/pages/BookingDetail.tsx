@@ -189,6 +189,10 @@ export default function BookingDetail() {
       </div>
 
       <div className="mt-6">
+        <DocumentVault bookingId={b.booking_id} />
+      </div>
+
+      <div className="mt-6">
         <BookingDocumentEditor booking={b} payments={data.payments} ledger={ledgerWithStatus} />
       </div>
     </div>

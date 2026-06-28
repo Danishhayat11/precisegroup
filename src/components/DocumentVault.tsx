@@ -296,6 +296,7 @@ export default function DocumentVault({ bookingId }: Props) {
               <th className="text-left px-3 py-2 font-medium">File</th>
               <th className="text-right px-3 py-2 font-medium">Size</th>
               <th className="text-left px-3 py-2 font-medium">Date</th>
+              <th className="text-left px-3 py-2 font-medium">Sent Via</th>
               <th className="text-left px-3 py-2 font-medium">Uploaded By</th>
               <th className="text-left px-3 py-2 font-medium">Notes</th>
               <th className="text-right px-3 py-2 font-medium">Actions</th>
@@ -304,13 +305,13 @@ export default function DocumentVault({ bookingId }: Props) {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="text-center text-muted-foreground p-8">
+                <td colSpan={8} className="text-center text-muted-foreground p-8">
                   Loading…
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center text-muted-foreground p-10">
+                <td colSpan={8} className="text-center text-muted-foreground p-10">
                   No documents yet. Click "Upload document" to add the first one.
                 </td>
               </tr>
@@ -341,10 +342,26 @@ export default function DocumentVault({ bookingId }: Props) {
                   <td className="px-3 py-2 text-xs">
                     {format(new Date(d.document_date), "dd-MMM-yyyy")}
                   </td>
+                  <td className="px-3 py-2 text-xs">
+                    {d.sent_via ? (
+                      <div className="flex flex-col">
+                        <span className="font-medium">{d.sent_via}</span>
+                        {d.tcs_tracking_no && (
+                          <span className="text-[10px] text-muted-foreground font-mono">TCS: {d.tcs_tracking_no}</span>
+                        )}
+                        {d.whatsapp_sent_to && (
+                          <span className="text-[10px] text-muted-foreground">WA: {d.whatsapp_sent_to}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-xs">{d.uploaded_by_name ?? "—"}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground max-w-[220px] truncate" title={d.notes ?? ""}>
                     {d.notes ?? "—"}
                   </td>
+
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-1">
                       <Button

@@ -21,6 +21,7 @@ import { CalendarIcon, FileText, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentForm, PAYMENT_TYPES } from "@/components/PaymentForm";
 import { PaymentReceipt } from "@/components/PaymentReceipt";
+import { buildReplayInitial } from "@/lib/paymentReplay";
 
 export default function Payments() {
   const qc = useQueryClient();

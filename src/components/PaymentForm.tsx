@@ -78,6 +78,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [blockedAudit, setBlockedAudit] = useState<PaymentBlockedAuditEntry | null>(null);
   const paymentTypeRef = useRef<HTMLButtonElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 

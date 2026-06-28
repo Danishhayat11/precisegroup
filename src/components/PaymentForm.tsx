@@ -75,6 +75,8 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const paymentTypeRef = useRef<HTMLButtonElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings-min"],

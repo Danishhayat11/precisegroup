@@ -135,6 +135,7 @@ export default function Bookings() {
                 <th className="text-right font-medium px-4 py-2.5 border-b">Overdue</th>
                 <th className="text-left font-medium px-4 py-2.5 border-b">Status</th>
                 <th className="text-left font-medium px-4 py-2.5 border-b">Risk</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Docs</th>
                 <th className="text-left font-medium px-4 py-2.5 border-b">Actions</th>
               </tr>
             </thead>

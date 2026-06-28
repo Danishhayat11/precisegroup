@@ -40,6 +40,25 @@ export const ALLOWED_MIME = [
 export const MAX_BYTES = 10 * 1024 * 1024;
 export const BUCKET = "booking-documents";
 
+export const SENT_VIA_OPTIONS = [
+  "TCS Courier",
+  "WhatsApp",
+  "Both",
+  "Email",
+  "In Person",
+] as const;
+export type SentVia = (typeof SENT_VIA_OPTIONS)[number];
+
+/** Labels that represent a notice / letter that was *sent* to the client.
+ *  When uploading one of these we surface the Sent-Via metadata fields. */
+export const NOTICE_LABELS: ReadonlySet<string> = new Set([
+  "Legal Notice Sent",
+  "Final Legal Notice Sent",
+  "Cancellation Notice Sent",
+  "Client Reply / Response Received",
+  "Court Letter / Legal Correspondence",
+]);
+
 export interface BookingDocument {
   id: string;
   booking_id: string;
@@ -55,9 +74,12 @@ export interface BookingDocument {
   uploaded_by_name: string | null;
   source: string;
   tcs_tracking_no: string | null;
+  sent_via: SentVia | null;
+  whatsapp_sent_to: string | null;
   created_at: string;
   updated_at: string;
 }
+
 
 export function fmtSize(bytes?: number | null): string {
   if (!bytes && bytes !== 0) return "—";

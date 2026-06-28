@@ -151,7 +151,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
 
   // Prior payment.save.blocked audit attempts for this same receipt — surfaced
   // in a dropdown so the user can re-open and inspect any earlier blocked save.
-  const { data: recentBlocked = [], refetch: refetchBlocked } = useQuery({
+  const { data: recentBlocked = [] } = useQuery({
     queryKey: ["payment-blocked-history", form.receipt_no, blockedAudit?.id ?? null],
     enabled: !!form.receipt_no,
     queryFn: async () => {

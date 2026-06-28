@@ -847,28 +847,50 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
       </div>
 
-      <div className="flex flex-col items-end gap-1 pt-2 border-t">
-        {invariantWouldFail && (
-          <p className="text-[11px] text-destructive font-medium">
-            ✗ Save disabled — converting a Cash/Bank payment to Adjustment/Asset would break the safe_cash_amount invariant. Delete and re-create instead.
-          </p>
-        )}
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || locked || invariantWouldFail}
-            title={
-              locked
-                ? "Change Payment Type to unlock"
-                : invariantWouldFail
-                  ? "Impact preview shows the safe_cash_amount invariant would fail"
-                  : undefined
-            }
-          >
-            {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {isEdit ? "Save changes" : "Record payment"}
-          </Button>
+      <div className="flex flex-col gap-2 pt-2 border-t sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          to={
+            blockedAudit
+              ? `/audit?highlight=${blockedAudit.id}`
+              : `/audit?entity=payment&entity_id=${encodeURIComponent(form.receipt_no)}&action=payment.save.blocked`
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+          title={
+            blockedAudit
+              ? "Open the audit entry for the most recent blocked save"
+              : "Open the audit log filtered to blocked-save attempts for this receipt"
+          }
+        >
+          <ShieldAlert className="h-3 w-3" />
+          View audit log
+          {blockedAudit && <span className="text-destructive font-semibold">· 1 blocked</span>}
+          <ExternalLink className="h-3 w-3" />
+        </Link>
+        <div className="flex flex-col items-end gap-1">
+          {invariantWouldFail && (
+            <p className="text-[11px] text-destructive font-medium">
+              ✗ Save disabled — converting a Cash/Bank payment to Adjustment/Asset would break the safe_cash_amount invariant. Delete and re-create instead.
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || locked || invariantWouldFail}
+              title={
+                locked
+                  ? "Change Payment Type to unlock"
+                  : invariantWouldFail
+                    ? "Impact preview shows the safe_cash_amount invariant would fail"
+                    : undefined
+              }
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              {isEdit ? "Save changes" : "Record payment"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -65,9 +65,14 @@ export default function AuditLog() {
       )}
       <DataTable
         rows={rows}
-        columns={columns}
+        columns={highlight ? [
+          { key: "mark", header: "", cell: (r) => highlight === r.id
+            ? <span className="rounded bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">latest</span>
+            : null,
+          },
+          ...columns,
+        ] : columns}
         rowKey={(r) => r.id}
-        rowClassName={(r) => cn(highlight === r.id && "bg-destructive/10")}
         empty="No audit entries yet. Future create/edit/delete operations and imports will appear here."
       />
     </div>

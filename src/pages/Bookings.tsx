@@ -191,6 +191,7 @@ export default function Bookings() {
                       })()}
                     </td>
                     <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-1">
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="View" onClick={() => navigate(`/bookings/${b.booking_id}`)}>
                           <Eye className="h-3.5 w-3.5" />
                         </Button>

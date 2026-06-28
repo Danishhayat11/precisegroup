@@ -307,6 +307,44 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
   // Form is locked after a Postgres trigger block until the live re-check passes.
   const locked = !!blockedAudit;
 
+  // Inline tooltip wrapper for locked fields. Explains *why* this specific
+  // control is frozen and which knob the user must toggle to unlock it.
+  const LockedTip = ({
+    field,
+    note,
+    children,
+  }: { field: string; note?: string; children: ReactNode }) => {
+    if (!locked) return <>{children}</>;
+    const cond = blockedAudit?.failed_condition ?? "cash invariant";
+    const stillFails = (liveBlockStatus as any)?.stillFails;
+    const liveReason = (liveBlockStatus as any)?.reason;
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>
+          <span className="block">{children}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-[300px] text-[11px] leading-snug">
+          <p className="font-semibold text-destructive">🔒 {field} is locked</p>
+          <p className="mt-1">
+            The last save was rejected by the database trigger
+            (<code className="font-mono text-[10px]">{cond}</code>), so this field is frozen to prevent re-submitting the same row.
+          </p>
+          {note && <p className="mt-1 text-muted-foreground">{note}</p>}
+          <p className="mt-1">
+            <span className="font-semibold">To unlock:</span> change <span className="font-semibold">Payment Type</span>,{" "}
+            <span className="font-semibold">Amount</span>, or <span className="font-semibold">Payment Head</span>{" "}
+            above — the failed-condition check re-runs on each edit and clears the lock the moment it passes.
+          </p>
+          {stillFails && liveReason && (
+            <p className="mt-1 text-destructive">↳ Live re-check still fails: {liveReason}</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
+
+
   // Pre-flight check: would the impact preview violate the safe_cash_amount invariant?
   // For Adjustment/Asset we force safe_cash_amount = 0, so the only way to violate
   // is editing a row whose previous safe_cash_amount was non-zero (cash→adjustment

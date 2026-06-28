@@ -407,6 +407,60 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
       </div>
 
+      {/* Audit log surfacing — appears when a save was rejected */}
+      {blockedAudit && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs"
+        >
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-destructive">
+                Save rejected — recorded to Audit Log
+              </div>
+              <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                <div>
+                  <span className="text-muted-foreground">Actor: </span>
+                  <span className="font-medium">
+                    {blockedAudit.actor_full_name || blockedAudit.actor_email || blockedAudit.actor_id}
+                  </span>
+                  {blockedAudit.actor_full_name && blockedAudit.actor_email && (
+                    <span className="text-muted-foreground"> ({blockedAudit.actor_email})</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">When: </span>
+                  <span className="font-medium tabular-nums">
+                    {new Date(blockedAudit.created_at).toLocaleString("en-PK")}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Failed condition: </span>
+                  <code className="rounded bg-destructive/10 px-1 py-0.5 font-mono text-[10px] text-destructive">
+                    {blockedAudit.failed_condition}
+                  </code>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Receipt: </span>
+                  <span className="font-mono">{blockedAudit.receipt_no}</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-muted-foreground">Audit ID: </span>
+                  <span className="font-mono text-[10px]">{blockedAudit.id}</span>
+                </div>
+              </div>
+              <Link
+                to={`/audit?highlight=${blockedAudit.id}`}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
+              >
+                Open in Audit Log <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cash / Adjustment impact diff */}
       {(() => {
         const isAdj = form.payment_mode === "Adjustment/Asset";

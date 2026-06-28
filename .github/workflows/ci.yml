@@ -105,3 +105,86 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
+
+  coverage:
+    name: Vitest coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Run on every PR (and on pushes to main) so the artifact + summary
+    # land on the merge commit too. Independent of `vitest` so a coverage
+    # tooling regression never blocks the main test gate.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # @vitest/coverage-v8 provides the V8-based instrumenter Vitest uses
+      # for `--coverage`. Installed inline so the main repo lockfile stays
+      # untouched until the team chooses to commit it.
+      - name: Install coverage provider
+        run: bun add -d @vitest/coverage-v8
+
+      # Generate text-summary (for the PR job summary), lcov (for Codecov /
+      # other tools), and html (browsable artifact) reports in one pass.
+      - name: Run Vitest with coverage
+        run: |
+          bunx vitest run \
+            --coverage \
+            --coverage.provider=v8 \
+            --coverage.reporter=text \
+            --coverage.reporter=text-summary \
+            --coverage.reporter=html \
+            --coverage.reporter=lcov \
+            --coverage.reportsDirectory=coverage
+
+      # Surface the coverage totals directly in the PR check's summary tab
+      # so reviewers see the numbers without downloading the artifact.
+      - name: Post coverage summary to PR check
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.txt ]; then
+            {
+              echo "### Vitest coverage"
+              echo ""
+              echo '```'
+              cat coverage/coverage-summary.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            # text-summary reporter prints to stdout; re-run quickly to
+            # capture just the summary block for the job summary tab.
+            {
+              echo "### Vitest coverage"
+              echo ""
+              echo '```'
+              bunx vitest run --coverage --coverage.provider=v8 \
+                --coverage.reporter=text-summary 2>/dev/null \
+                | sed -n '/Coverage report/,/^$/p' || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload HTML + LCOV coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage
+          path: coverage
+          retention-days: 14
+
+      # Optional Codecov upload — only runs when a CODECOV_TOKEN secret is
+      # configured, so forks / unconfigured repos don't fail this step.
+      - name: Upload coverage to Codecov
+        if: ${{ always() && env.CODECOV_TOKEN != '' }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+

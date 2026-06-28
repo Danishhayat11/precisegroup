@@ -118,8 +118,10 @@ export async function uploadDoc(params: {
   notes?: string;
   source?: string;
   tcsTrackingNo?: string;
+  sentVia?: SentVia | null;
+  whatsappSentTo?: string | null;
 }): Promise<BookingDocument> {
-  const { bookingId, file, label, labelCustom, documentDate, notes, source, tcsTrackingNo } = params;
+  const { bookingId, file, label, labelCustom, documentDate, notes, source, tcsTrackingNo, sentVia, whatsappSentTo } = params;
   if (file.size > MAX_BYTES) throw new Error("File exceeds 10MB limit.");
   if (file.type && !ALLOWED_MIME.includes(file.type)) {
     throw new Error("Unsupported file type. Use PDF, JPG, PNG, or DOCX.");
@@ -155,6 +157,8 @@ export async function uploadDoc(params: {
     uploaded_by_name: userName,
     source: source ?? "manual",
     tcs_tracking_no: tcsTrackingNo ?? null,
+    sent_via: sentVia ?? null,
+    whatsapp_sent_to: whatsappSentTo ?? null,
   };
   const { data, error } = await supabase
     .from("booking_documents")
@@ -176,6 +180,8 @@ export async function createMetadataDoc(params: {
   notes?: string;
   source: string;
   tcsTrackingNo?: string;
+  sentVia?: SentVia | null;
+  whatsappSentTo?: string | null;
 }): Promise<BookingDocument> {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
@@ -192,6 +198,8 @@ export async function createMetadataDoc(params: {
       notes: params.notes ?? null,
       source: params.source,
       tcs_tracking_no: params.tcsTrackingNo ?? null,
+      sent_via: params.sentVia ?? null,
+      whatsapp_sent_to: params.whatsappSentTo ?? null,
       uploaded_by: userId,
       uploaded_by_name: userName,
       storage_path: null,
@@ -218,6 +226,8 @@ export async function signedUrl(path: string, seconds = 300): Promise<string> {
   if (error) throw error;
   return data.signedUrl;
 }
+
+
 
 export async function downloadDoc(doc: BookingDocument): Promise<void> {
   if (!doc.storage_path) throw new Error("This entry has no attached file.");

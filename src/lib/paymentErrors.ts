@@ -185,3 +185,66 @@ export function mapPaymentError(
     fieldErrors: {},
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suggested fix for the "Use suggested fix" button in the audit drawer.
+// Returns a partial patch the Payment form can splat into its state, plus a
+// human-readable summary explaining the change.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface PaymentFixSuggestion {
+  /** Partial PaymentFormValue patch to merge into the form. */
+  patch: Record<string, any>;
+  /** Plain-English explanation of what the fix changes and why. */
+  summary: string;
+  /** When true, the form should also regenerate receipt_no via nextPaymentId(). */
+  nextReceipt?: boolean;
+}
+
+export function suggestPaymentFix(
+  failed: FailedCondition,
+  attempted: Record<string, any> | null,
+  currentDb: Record<string, any> | null,
+): PaymentFixSuggestion | null {
+  if (!attempted && failed !== "duplicate_receipt") return null;
+  const att = attempted ?? {};
+
+  switch (failed) {
+    case "type_conversion_blocked": {
+      const cur = currentDb?.payment_mode;
+      if (!cur || cur === att.payment_mode) return null;
+      return {
+        patch: { payment_mode: cur },
+        summary: `Revert Payment Type to "${cur}" — the existing row cannot be converted to Adjustment/Asset because Cash Received would shift.`,
+      };
+    }
+    case "adjustment_safe_cash_not_zero":
+    case "adjustment_flag_missing":
+    case "cash_bank_include_inconsistent":
+      return {
+        patch: { payment_mode: "Cash" },
+        summary: `Switch Payment Type to "Cash" so the entry legitimately counts toward Cash Received and the invariant clears.`,
+      };
+    case "non_cash_flag_on_cash_row":
+      return {
+        patch: { payment_mode: "Adjustment/Asset" },
+        summary: `Switch Payment Type to "Adjustment/Asset" — the row was flagged as non-cash, which only that type allows.`,
+      };
+    case "cash_amount_mismatch": {
+      const mode =
+        att.payment_mode === "Adjustment/Asset" ? "Cash" : (att.payment_mode || "Cash");
+      return {
+        patch: { payment_mode: mode, amount: Number(att.amount) || 0 },
+        summary: `Re-align the amount and pin Payment Type to "${mode}" so safe_cash_amount = amount.`,
+      };
+    }
+    case "duplicate_receipt":
+      return {
+        patch: {},
+        summary: `Generate the next free receipt number and re-attempt the save.`,
+        nextReceipt: true,
+      };
+    default:
+      return null;
+  }
+}
+

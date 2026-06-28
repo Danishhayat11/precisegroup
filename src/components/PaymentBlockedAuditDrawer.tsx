@@ -66,7 +66,7 @@ function eq(a: any, b: any): boolean {
   return String(a) === String(b);
 }
 
-export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted }: Props) {
+export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted, onApplyFix }: Props) {
   const [loading, setLoading] = useState(false);
   const [auditRow, setAuditRow] = useState<AuditRow | null>(null);
   const [currentDb, setCurrentDb] = useState<Record<string, any> | null>(null);

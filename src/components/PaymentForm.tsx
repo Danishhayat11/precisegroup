@@ -235,25 +235,49 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     }
 
 
-    // Post-write verification for adjustment rows — rollback if cash totals shifted
+    // Post-write reconciliation for adjustment rows — re-read global cash,
+    // booking-scoped cash, and ledger paid totals; rollback if ANY shifted.
     if (isAdjustment) {
-      const { data: snap2 } = await supabase
-        .from("payments")
-        .select("safe_cash_amount");
+      const [{ data: snap2 }, { data: ledSnap2 }, { data: bkSnap2 }] = await Promise.all([
+        supabase.from("payments").select("safe_cash_amount"),
+        supabase.from("installment_ledger").select("paid_amount").eq("booking_id", form.booking_id),
+        supabase.from("payments").select("safe_cash_amount").eq("booking_id", form.booking_id),
+      ]);
       const cashAfter = (snap2 ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
-      if (Math.abs(cashAfter - cashBefore) > 0.5) {
-        // Roll back
+      const ledgerPaidAfter = (ledSnap2 ?? []).reduce((s: number, r: any) => s + (Number(r.paid_amount) || 0), 0);
+      const bookingCashAfter = (bkSnap2 ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+
+      const dCash = cashAfter - cashBefore;
+      const dBookingCash = bookingCashAfter - bookingCashBefore;
+      const dLedger = ledgerPaidAfter - ledgerPaidBefore;
+      const drift = Math.max(Math.abs(dCash), Math.abs(dBookingCash), Math.abs(dLedger));
+
+      if (drift > 0.5) {
+        // Roll back the just-inserted row (edits cannot be auto-reverted).
         if (!isEdit) {
           await supabase.from("payments").delete().eq("receipt_no", form.receipt_no);
         }
         setSaving(false);
+        const parts: string[] = [];
+        if (Math.abs(dCash) > 0.5) parts.push(`global cash Δ ${dCash.toLocaleString("en-PK")}`);
+        if (Math.abs(dBookingCash) > 0.5) parts.push(`booking cash Δ ${dBookingCash.toLocaleString("en-PK")}`);
+        if (Math.abs(dLedger) > 0.5) parts.push(`ledger paid Δ ${dLedger.toLocaleString("en-PK")}`);
         toast({
           variant: "destructive",
-          title: "Save blocked — Cash Received would change",
-          description: `Cash totals moved by PKR ${(cashAfter - cashBefore).toLocaleString("en-PK")}. Adjustment/Asset entries must never affect Cash Received. The save has been reverted.`,
+          title: "Reconciliation failed — change reverted",
+          description: `Adjustment/Asset must not move cash or ledger totals (${parts.join(", ")} PKR). ${isEdit ? "Please undo manually." : "The new row was deleted."}`,
         });
         return;
       }
+
+      // Reconciliation passed — surface a confirmation in the toast.
+      toast({
+        title: isEdit ? "Adjustment updated — reconciled" : "Adjustment recorded — reconciled",
+        description: `Cash totals unchanged (global, booking, ledger). Receipt ${form.receipt_no}.`,
+      });
+      setSaving(false);
+      onSaved(form.receipt_no);
+      return;
     }
 
     setSaving(false);

@@ -194,7 +194,7 @@ export default function Dashboard() {
                     : rawPhone.length === 10
                       ? "92" + rawPhone
                       : rawPhone;
-                const msg = `Dear ${b.client_name},\n\nThis is a reminder from Precise Realtors & Builders regarding your unit ${b.unit_id}.\n\nYou currently have ${b._ov} overdue installment(s) with a total outstanding amount of PKR ${Number(b._amt).toLocaleString("en-PK")}.\n\nKindly arrange the payment at your earliest convenience to avoid further action.\n\nThank you.`;
+                const msg = `Dear ${b.client_name},\n\nThis is a reminder from Precise Realtors & Builders regarding your booking ${b.booking_id} (Unit ${b.unit_id}).\n\nYou currently have ${b._ov} overdue installment(s) with a total outstanding amount of PKR ${Number(b._amt).toLocaleString("en-PK")}.\n\nKindly arrange the payment at your earliest convenience to avoid further action.\n\nThank you.`;
                 const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}` : "";
                 return (
                   <tr key={b.booking_id} className="border-t hover:bg-muted/30 transition-colors">

@@ -528,7 +528,21 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      role="group"
+      aria-label="Payment form"
+      aria-disabled={locked || undefined}
+      data-locked={locked ? "true" : undefined}
+      data-locked-source={lockedByParent ? "parent" : blockedAudit ? "blocked-audit" : undefined}
+      // `inert` removes the subtree from sequential focus navigation,
+      // hit-testing, and ARIA accessibility tree interaction. We only
+      // engage it for parent-driven locks so the existing blocked-audit
+      // flow (which lets the user retype Type/Amount/Head to unlock)
+      // continues to work.
+      {...(lockedByParent ? ({ inert: "" } as any) : {})}
+    >
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>

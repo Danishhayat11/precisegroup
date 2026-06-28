@@ -260,8 +260,8 @@ describe("Payments: openReceipt-only URLs (no audit) never produce audit-derived
     expect(lastMount.receipt).toBe("PAY-B");
     expect(lastMount.bookingId).toBe("");
     expect(lastMount.amount).toBe(0);
-    expect(lastMount.paymentMode).toBeUndefined();
-    expect(lastMount.paymentHead).toBeUndefined();
+    expect(lastMount.paymentMode).toBe("");
+    expect(lastMount.paymentHead).toBe("");
     expect(lastMount.prefillAuditId).toBeNull();
     expect(auditFetches).toBe(0);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

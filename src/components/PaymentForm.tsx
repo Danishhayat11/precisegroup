@@ -29,6 +29,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { ReactNode } from "react";
 
 export const PAYMENT_TYPES = ["Cash", "Bank Transfer", "Adjustment/Asset"] as const;
 export const PAYMENT_HEADS = ["Down Payment", "Installment", "Possession", "Advance", "Extra Payment"] as const;
@@ -303,6 +307,44 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
   // Form is locked after a Postgres trigger block until the live re-check passes.
   const locked = !!blockedAudit;
 
+  // Inline tooltip wrapper for locked fields. Explains *why* this specific
+  // control is frozen and which knob the user must toggle to unlock it.
+  const LockedTip = ({
+    field,
+    note,
+    children,
+  }: { field: string; note?: string; children: ReactNode }) => {
+    if (!locked) return <>{children}</>;
+    const cond = blockedAudit?.failed_condition ?? "cash invariant";
+    const stillFails = (liveBlockStatus as any)?.stillFails;
+    const liveReason = (liveBlockStatus as any)?.reason;
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>
+          <span className="block">{children}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-[300px] text-[11px] leading-snug">
+          <p className="font-semibold text-destructive">🔒 {field} is locked</p>
+          <p className="mt-1">
+            The last save was rejected by the database trigger
+            (<code className="font-mono text-[10px]">{cond}</code>), so this field is frozen to prevent re-submitting the same row.
+          </p>
+          {note && <p className="mt-1 text-muted-foreground">{note}</p>}
+          <p className="mt-1">
+            <span className="font-semibold">To unlock:</span> change <span className="font-semibold">Payment Type</span>,{" "}
+            <span className="font-semibold">Amount</span>, or <span className="font-semibold">Payment Head</span>{" "}
+            above — the failed-condition check re-runs on each edit and clears the lock the moment it passes.
+          </p>
+          {stillFails && liveReason && (
+            <p className="mt-1 text-destructive">↳ Live re-check still fails: {liveReason}</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
+
+
   // Pre-flight check: would the impact preview violate the safe_cash_amount invariant?
   // For Adjustment/Asset we force safe_cash_amount = 0, so the only way to violate
   // is editing a row whose previous safe_cash_amount was non-zero (cash→adjustment
@@ -488,7 +530,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     errors[k] ? <p className="text-[11px] text-destructive mt-1">{errors[k]}</p> : null;
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-4">
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label>Payment ID</Label>
@@ -496,6 +540,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         </div>
         <div>
           <Label>Payment Date *</Label>
+          <LockedTip field="Payment Date" note="Date can't shift until the cash-invariant issue above is resolved.">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal h-9", !form.payment_date && "text-muted-foreground")}>
@@ -513,11 +558,14 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
               />
             </PopoverContent>
           </Popover>
+          </LockedTip>
           <Err k="payment_date" />
+
         </div>
         <div>
           <Label>Booking *</Label>
-          <Popover open={bookingOpen} onOpenChange={setBookingOpen}>
+          <LockedTip field="Booking" note="Re-pointing to a different booking while a blocked attempt is open could orphan the audit row. Clear the block first.">
+          <Popover open={bookingOpen} onOpenChange={(o) => !locked && setBookingOpen(o)}>
             <PopoverTrigger asChild>
               <Button variant="outline" role="combobox" disabled={locked} className="w-full justify-between h-9 font-normal">
                 <span className="truncate">
@@ -551,6 +599,8 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
               </Command>
             </PopoverContent>
           </Popover>
+          </LockedTip>
+
           <Err k="booking_id" />
         </div>
       </div>
@@ -1050,23 +1100,32 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         {form.payment_mode === "Bank Transfer" && (
           <div>
             <Label>Bank Name</Label>
-            <Input value={form.account ?? ""} disabled={locked} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
+            <LockedTip field="Bank Name" note="Bank/account changes are blocked while the trigger rejection stands — the row itself can't be saved yet.">
+              <Input value={form.account ?? ""} disabled={locked} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
+            </LockedTip>
           </div>
         )}
         <div>
           <Label>Cheque / Reference Number</Label>
-          <Input value={form.cheque_txn_no ?? ""} disabled={locked} onChange={(e) => set("cheque_txn_no", e.target.value)} />
+          <LockedTip field="Cheque / Reference Number" note="Reference data is frozen so you don't tweak it while the same invariant-violating row is sitting in the form.">
+            <Input value={form.cheque_txn_no ?? ""} disabled={locked} onChange={(e) => set("cheque_txn_no", e.target.value)} />
+          </LockedTip>
         </div>
         <div>
           <Label>Received By</Label>
-          <Input value={form.posted_by ?? ""} disabled={locked} onChange={(e) => set("posted_by", e.target.value)} />
+          <LockedTip field="Received By" note="Receiver name is locked together with the rest of the metadata until the cash-invariant block clears.">
+            <Input value={form.posted_by ?? ""} disabled={locked} onChange={(e) => set("posted_by", e.target.value)} />
+          </LockedTip>
         </div>
       </div>
 
       <div>
         <Label>Notes</Label>
-        <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
+        <LockedTip field="Notes" note="Notes are read-only while a blocked attempt is open so they stay in sync with the audited payload.">
+          <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
+        </LockedTip>
       </div>
+
 
       <div className="flex flex-col gap-2 pt-2 border-t sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -1185,20 +1244,26 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
           )}
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving || locked || invariantWouldFail}
-              title={
-                locked
-                  ? "Toggle Payment Type, Amount, or Payment Head to unlock"
-                  : invariantWouldFail
-                    ? "Impact preview shows the safe_cash_amount invariant would fail"
-                    : undefined
-              }
+            <LockedTip
+              field="Save"
+              note="Save is disabled because the database trigger already rejected this exact payload. Re-submitting it would only produce another blocked audit row."
             >
-              {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              {isEdit ? "Save changes" : "Record payment"}
-            </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving || locked || invariantWouldFail}
+                title={
+                  locked
+                    ? "Toggle Payment Type, Amount, or Payment Head to unlock"
+                    : invariantWouldFail
+                      ? "Impact preview shows the safe_cash_amount invariant would fail"
+                      : undefined
+                }
+              >
+                {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                {isEdit ? "Save changes" : "Record payment"}
+              </Button>
+            </LockedTip>
+
           </div>
         </div>
       </div>
@@ -1250,5 +1315,6 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         }}
       />
     </div>
+    </TooltipProvider>
   );
 }

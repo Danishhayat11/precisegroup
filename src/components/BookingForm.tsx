@@ -430,3 +430,93 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
     </div>
   );
 }
+
+function PaymentPlanPreview({
+  firstDue, count, amount, frequency, downPaymentCash, adjustmentCredit, possessionAmount, bookingDate,
+}: {
+  firstDue: string;
+  count: number;
+  amount: number;
+  frequency: typeof FREQUENCIES[number];
+  downPaymentCash: number;
+  adjustmentCredit: number;
+  possessionAmount: number;
+  bookingDate: string;
+}) {
+  const monthStep = frequency === "Monthly" ? 1 : frequency === "Quarterly" ? 3 : frequency === "Half-Yearly" ? 6 : 12;
+  const start = firstDue ? new Date(firstDue) : null;
+
+  const rows: { sr: number; particulars: string; due: string; amount: number }[] = [];
+  let sr = 1;
+
+  if (downPaymentCash > 0) {
+    rows.push({ sr: sr++, particulars: "Down Payment (Cash)", due: bookingDate, amount: downPaymentCash });
+  }
+  if (adjustmentCredit > 0) {
+    rows.push({ sr: sr++, particulars: "Adjustment Allowed", due: bookingDate, amount: adjustmentCredit });
+  }
+
+  if (start && count > 0 && amount > 0) {
+    for (let i = 0; i < count; i++) {
+      const d = addMonths(start, i * monthStep);
+      rows.push({
+        sr: sr++,
+        particulars: `Installment ${i + 1} of ${count}`,
+        due: format(d, "yyyy-MM-dd"),
+        amount,
+      });
+    }
+  }
+
+  if (possessionAmount > 0) {
+    const possDate = start && count > 0
+      ? format(addMonths(start, count * monthStep), "yyyy-MM-dd")
+      : "";
+    rows.push({ sr: sr++, particulars: "Possession Amount", due: possDate, amount: possessionAmount });
+  }
+
+  const total = rows.reduce((s, r) => s + r.amount, 0);
+
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-primary mb-2">Payment Plan Preview</h3>
+      {rows.length === 0 ? (
+        <div className="text-xs text-muted-foreground border rounded-md p-4 bg-muted/30">
+          Enter installment count, amount, and first due date to preview the schedule.
+        </div>
+      ) : (
+        <div className="border rounded-md overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left font-medium px-3 py-2 w-12">#</th>
+                <th className="text-left font-medium px-3 py-2">Particulars</th>
+                <th className="text-left font-medium px-3 py-2">Due Date</th>
+                <th className="text-right font-medium px-3 py-2">Amount (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={r.sr} className={cn("border-t", idx % 2 === 1 && "bg-muted/20")}>
+                  <td className="px-3 py-2 tabular-nums">{r.sr}</td>
+                  <td className="px-3 py-2">{r.particulars}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {r.due ? format(new Date(r.due), "dd-MMM-yyyy") : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtPKR(r.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t bg-muted/40 font-semibold">
+                <td colSpan={3} className="px-3 py-2 text-right">Plan Total</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmtPKR(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+

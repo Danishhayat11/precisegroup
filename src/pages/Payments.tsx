@@ -245,25 +245,39 @@ export default function Payments() {
         </div>
       </div>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) { setReplayInitial(null); setReplayAuditId(null); }
+        }}
+      >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record payment</DialogTitle>
+            <DialogTitle>{replayInitial ? "Replay blocked payment" : "Record payment"}</DialogTitle>
             <DialogDescription>
-              Cash and Bank Transfer count toward Cash Received. Adjustment/Asset is tracked separately.
+              {replayInitial
+                ? `Re-attempting ${replayInitial.receipt_no} from the audit log. Inspect the prior failure in the drawer, adjust, and save.`
+                : "Cash and Bank Transfer count toward Cash Received. Adjustment/Asset is tracked separately."}
             </DialogDescription>
           </DialogHeader>
           <PaymentForm
-            initial={bookingFilter ? { booking_id: bookingFilter } : undefined}
-            onCancel={() => setCreateOpen(false)}
+            key={replayAuditId ?? "new"}
+            initial={replayInitial ?? (bookingFilter ? { booking_id: bookingFilter } : undefined)}
+            replayBlocked={!!replayInitial}
+            prefillAuditId={replayAuditId}
+            onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); }}
             onSaved={(no) => {
               setCreateOpen(false);
+              setReplayInitial(null);
+              setReplayAuditId(null);
               qc.invalidateQueries({ queryKey: ["payments"] });
               setReceiptNo(no);
             }}
           />
         </DialogContent>
       </Dialog>
+
 
       <PaymentReceipt open={!!receiptNo} onOpenChange={(o) => !o && setReceiptNo(null)} receiptNo={receiptNo} />
     </div>

@@ -111,6 +111,34 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     const isAdjustment = form.payment_mode === "Adjustment/Asset";
     const safe_cash_amount = isAdjustment ? 0 : form.amount;
 
+    // HARD GUARD — when saving an Adjustment/Asset payment, Cash Received must
+    // not move. Pre-snapshot the global SUM(safe_cash_amount); save; re-snapshot;
+    // if it changed by even 1 paisa, roll back and block.
+    let cashBefore = 0;
+    if (isAdjustment) {
+      // Block illegal type conversions on edit (cash↔adjustment would shift totals)
+      if (isEdit) {
+        const { data: orig } = await supabase
+          .from("payments")
+          .select("payment_mode")
+          .eq("receipt_no", form.receipt_no)
+          .maybeSingle();
+        if (orig && orig.payment_mode !== "Adjustment/Asset") {
+          setSaving(false);
+          toast({
+            variant: "destructive",
+            title: "Type change blocked",
+            description: "A Cash / Bank Transfer payment cannot be converted to Adjustment/Asset — it would alter Cash Received totals.",
+          });
+          return;
+        }
+      }
+      const { data: snap } = await supabase
+        .from("payments")
+        .select("safe_cash_amount");
+      cashBefore = (snap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+    }
+
     const payload: any = {
       receipt_no: form.receipt_no,
       booking_id: form.booking_id,
@@ -134,14 +162,39 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     const { error } = isEdit
       ? await supabase.from("payments").update(payload).eq("receipt_no", form.receipt_no)
       : await supabase.from("payments").insert(payload);
-    setSaving(false);
+
     if (error) {
+      setSaving(false);
       toast({ variant: "destructive", title: "Save failed", description: error.message });
       return;
     }
+
+    // Post-write verification for adjustment rows — rollback if cash totals shifted
+    if (isAdjustment) {
+      const { data: snap2 } = await supabase
+        .from("payments")
+        .select("safe_cash_amount");
+      const cashAfter = (snap2 ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      if (Math.abs(cashAfter - cashBefore) > 0.5) {
+        // Roll back
+        if (!isEdit) {
+          await supabase.from("payments").delete().eq("receipt_no", form.receipt_no);
+        }
+        setSaving(false);
+        toast({
+          variant: "destructive",
+          title: "Save blocked — Cash Received would change",
+          description: `Cash totals moved by PKR ${(cashAfter - cashBefore).toLocaleString("en-PK")}. Adjustment/Asset entries must never affect Cash Received. The save has been reverted.`,
+        });
+        return;
+      }
+    }
+
+    setSaving(false);
     toast({ title: isEdit ? "Payment updated" : "Payment recorded", description: form.receipt_no });
     onSaved(form.receipt_no);
   };
+
 
   const Err = ({ k }: { k: string }) =>
     errors[k] ? <p className="text-[11px] text-destructive mt-1">{errors[k]}</p> : null;

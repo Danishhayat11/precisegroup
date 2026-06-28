@@ -223,8 +223,8 @@ describe("Payments: openReceipt-only URLs (no audit) never produce audit-derived
       // Audit-derived fields must all be defaults — no leakage.
       expect(m.bookingId).toBe("");
       expect(m.amount).toBe(0);
-      expect(m.paymentMode).toBeUndefined();
-      expect(m.paymentHead).toBeUndefined();
+      expect(m.paymentMode).toBe("");
+      expect(m.paymentHead).toBe("");
       expect(m.prefillAuditId).toBeNull();
       expect(m.replayBlocked).toBe(true);
     }

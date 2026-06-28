@@ -61,6 +61,44 @@ export default function Reports() {
           }, {})
         ).map(([k, v]) => ({ label: k, value: fmtPKR(v as number) }))} />
       </div>
+
+      <div className="card-elevated overflow-hidden mt-4">
+        <div className="p-4 border-b text-sm font-semibold">Client statements</div>
+        <div className="overflow-x-auto max-h-[60vh]">
+          <table className="w-full text-sm table-sticky">
+            <thead className="text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Booking</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Client</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Unit</th>
+                <th className="text-right font-medium px-4 py-2.5 border-b">Contract Value</th>
+                <th className="text-right font-medium px-4 py-2.5 border-b">Cash Received</th>
+                <th className="text-right font-medium px-4 py-2.5 border-b">Outstanding</th>
+                <th className="text-right font-medium px-4 py-2.5 border-b">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.bookings.map((b: any) => (
+                <tr key={b.booking_id} className="border-t">
+                  <td className="px-4 py-2 font-mono text-xs text-primary">{b.booking_id}</td>
+                  <td className="px-4 py-2 capitalize">{b.client_name}</td>
+                  <td className="px-4 py-2 font-mono text-xs">{b.unit_id}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{fmtPKR(b.total_contract_value)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{fmtPKR(b.cash_received)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{fmtPKR(b.remaining_balance)}</td>
+                  <td className="px-4 py-2 text-right">
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={`/payment-history/${b.booking_id}`}>
+                        <Printer className="h-3.5 w-3.5 mr-1" /> Print Client Statement
+                      </Link>
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

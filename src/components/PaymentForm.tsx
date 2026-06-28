@@ -564,7 +564,8 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         </div>
         <div>
           <Label>Booking *</Label>
-          <Popover open={bookingOpen} onOpenChange={setBookingOpen}>
+          <LockedTip field="Booking" note="Re-pointing to a different booking while a blocked attempt is open could orphan the audit row. Clear the block first.">
+          <Popover open={bookingOpen} onOpenChange={(o) => !locked && setBookingOpen(o)}>
             <PopoverTrigger asChild>
               <Button variant="outline" role="combobox" disabled={locked} className="w-full justify-between h-9 font-normal">
                 <span className="truncate">
@@ -598,6 +599,8 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
               </Command>
             </PopoverContent>
           </Popover>
+          </LockedTip>
+
           <Err k="booking_id" />
         </div>
       </div>

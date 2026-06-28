@@ -135,15 +135,15 @@ export type Database = {
           booking_id: string
           created_at: string
           document_date: string
-          file_name: string
+          file_name: string | null
           id: string
           label: string
           label_custom: string | null
-          mime_type: string
+          mime_type: string | null
           notes: string | null
-          size_bytes: number
+          size_bytes: number | null
           source: string
-          storage_path: string
+          storage_path: string | null
           tcs_tracking_no: string | null
           updated_at: string
           uploaded_by: string | null
@@ -153,15 +153,15 @@ export type Database = {
           booking_id: string
           created_at?: string
           document_date?: string
-          file_name: string
+          file_name?: string | null
           id?: string
           label: string
           label_custom?: string | null
-          mime_type: string
+          mime_type?: string | null
           notes?: string | null
-          size_bytes: number
+          size_bytes?: number | null
           source?: string
-          storage_path: string
+          storage_path?: string | null
           tcs_tracking_no?: string | null
           updated_at?: string
           uploaded_by?: string | null
@@ -171,15 +171,15 @@ export type Database = {
           booking_id?: string
           created_at?: string
           document_date?: string
-          file_name?: string
+          file_name?: string | null
           id?: string
           label?: string
           label_custom?: string | null
-          mime_type?: string
+          mime_type?: string | null
           notes?: string | null
-          size_bytes?: number
+          size_bytes?: number | null
           source?: string
-          storage_path?: string
+          storage_path?: string | null
           tcs_tracking_no?: string | null
           updated_at?: string
           uploaded_by?: string | null

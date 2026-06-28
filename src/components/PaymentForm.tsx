@@ -137,6 +137,8 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     // not move. Pre-snapshot the global SUM(safe_cash_amount); save; re-snapshot;
     // if it changed by even 1 paisa, roll back and block.
     let cashBefore = 0;
+    let ledgerPaidBefore = 0;
+    let bookingCashBefore = 0;
     if (isAdjustment) {
       // Block illegal type conversions on edit (cash↔adjustment would shift totals)
       if (isEdit) {
@@ -155,10 +157,14 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           return;
         }
       }
-      const { data: snap } = await supabase
-        .from("payments")
-        .select("safe_cash_amount");
+      const [{ data: snap }, { data: ledSnap }, { data: bkSnap }] = await Promise.all([
+        supabase.from("payments").select("safe_cash_amount"),
+        supabase.from("installment_ledger").select("paid_amount").eq("booking_id", form.booking_id),
+        supabase.from("payments").select("safe_cash_amount").eq("booking_id", form.booking_id),
+      ]);
       cashBefore = (snap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: any) => s + (Number(r.paid_amount) || 0), 0);
+      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
     }
 
     const payload: any = {

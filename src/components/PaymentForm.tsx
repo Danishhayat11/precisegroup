@@ -334,7 +334,12 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         <div>
           <Label>Payment Type *</Label>
           <Select value={form.payment_mode} onValueChange={(v) => set("payment_mode", v as any)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger
+              ref={paymentTypeRef}
+              className={cn(errors.payment_mode && "border-destructive ring-2 ring-destructive/40 focus:ring-destructive")}
+            >
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>{PAYMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
           </Select>
           {errors.payment_mode ? (
@@ -349,7 +354,14 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
         <div>
           <Label>Amount (PKR) *</Label>
-          <Input type="number" min={0} value={form.amount || ""} onChange={(e) => set("amount", Number(e.target.value || 0))} />
+          <Input
+            ref={amountRef}
+            type="number"
+            min={0}
+            value={form.amount || ""}
+            onChange={(e) => set("amount", Number(e.target.value || 0))}
+            className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}
+          />
           <Err k="amount" />
         </div>
         <div>

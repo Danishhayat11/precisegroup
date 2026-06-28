@@ -201,6 +201,52 @@ export default function Payments() {
         }
       />
 
+      {replayError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-destructive">{replayError.title}</div>
+            <div className="mt-1 text-foreground/80">{replayError.detail}</div>
+            {(replayError.receiptNo || replayError.auditId) && (
+              <div className="mt-1 text-[11px] text-muted-foreground font-mono">
+                {replayError.receiptNo && <>receipt: {replayError.receiptNo}</>}
+                {replayError.receiptNo && replayError.auditId && <> · </>}
+                {replayError.auditId && <>audit: {replayError.auditId}</>}
+              </div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+              {replayError.auditId && (
+                <Link
+                  to={`/audit?highlight=${encodeURIComponent(replayError.auditId)}`}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Open Audit Log
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => { setReplayError(null); clearReplayParams(); }}
+                className="font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Start a fresh payment instead
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => { setReplayError(null); clearReplayParams(); }}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+
       {/* Filter bar */}
       <div className="card-elevated p-3 mb-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px] max-w-md">

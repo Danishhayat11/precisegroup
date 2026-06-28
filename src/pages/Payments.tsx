@@ -121,11 +121,22 @@ export default function Payments() {
         });
         return;
       }
+      // Final safeguard: if the component unmounted (or the URL params
+      // changed) between the last `await` and here, do NOT mutate state
+      // or auto-open the replay dialog. The cleanup below flips
+      // `cancelled = true`, which gates every state setter in this branch.
+      if (cancelled) return;
       setReplayInitial(initial);
       setReplayAuditId(auditIdParam ?? null);
       setCreateOpen(true);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      // Unmount / dep-change cancellation: any in-flight audit fetch
+      // resolves to a no-op, so the replay banner + dialog can never
+      // appear after the user has navigated away or dismissed the params.
+      cancelled = true;
+    };
+
   }, [openReceiptParam, auditIdParam]);
 
   const clearReplayParams = () => {

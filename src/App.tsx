@@ -20,6 +20,7 @@ import Reports from "@/pages/Reports";
 import Documents from "@/pages/Documents";
 import DocumentCenter from "@/pages/DocumentCenter";
 import DocumentView from "@/pages/DocumentView";
+import PaymentHistoryView from "@/pages/PaymentHistoryView";
 import ImportCenter from "@/pages/ImportCenter";
 import AuditLog from "@/pages/AuditLog";
 import LogicNotes from "@/pages/LogicNotes";

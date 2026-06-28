@@ -24,6 +24,7 @@ import { mapPaymentError } from "@/lib/paymentErrors";
 import { Link } from "react-router-dom";
 import { ShieldAlert, ExternalLink, FileSearch, History, ChevronDown } from "lucide-react";
 import { PaymentBlockedAuditDrawer } from "@/components/PaymentBlockedAuditDrawer";
+import { computeLiveBlockStatus } from "@/lib/paymentLockCheck";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -234,67 +235,17 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
   // need to wait for another save attempt.
   const liveBlockStatus = useMemo(() => {
     if (!blockedAudit) return { active: false as const };
-    const failed = (blockedAudit.failed_condition || "unknown") as string;
-    const prev = (totals as any)?.prev as
-      | { payment_mode?: string; safe_cash_amount?: number; non_cash_adjustment?: boolean }
-      | null;
-    const isAdj = form.payment_mode === "Adjustment/Asset";
-    const amt = Number(form.amount) || 0;
-    const attemptedAmt = Number(blockedPayload?.amount) || 0;
-    const attemptedMode = blockedPayload?.payment_mode;
-
-    let stillFails = false;
-    let reason = "";
-
-    switch (failed) {
-      case "type_conversion_blocked": {
-        // Fails while we're trying to convert a non-adjustment row into Adjustment/Asset.
-        if (isAdj && prev && prev.payment_mode && prev.payment_mode !== "Adjustment/Asset") {
-          stillFails = true;
-          reason = `Existing row is ${prev.payment_mode} — converting to Adjustment/Asset would shift Cash Received.`;
-        }
-        break;
-      }
-      case "adjustment_safe_cash_not_zero":
-      case "adjustment_flag_missing":
-      case "cash_bank_include_inconsistent": {
-        // Only re-fails on edit when the prior cash side wasn't already zero.
-        if (isAdj && prev && Math.abs(Number(prev.safe_cash_amount) || 0) > 0.005) {
-          stillFails = true;
-          reason = "Saving as Adjustment/Asset on top of a row whose cash side is non-zero still violates the invariant.";
-        }
-        break;
-      }
-      case "non_cash_flag_on_cash_row":
-      case "cash_amount_mismatch": {
-        // The form normalises these on save (safe_cash_amount = amount, flags reset),
-        // so any non-Adjustment selection now resolves them.
-        if (isAdj) {
-          // Still "in the same shape" if user kept Adjustment/Asset.
-          stillFails = false;
-        }
-        break;
-      }
-      case "duplicate_receipt": {
-        // Resolves the moment receipt_no changes from the attempted one.
-        if (form.receipt_no === blockedPayload?.receipt_no) {
-          stillFails = true;
-          reason = "Receipt number is unchanged — saving will collide again.";
-        }
-        break;
-      }
-      default: {
-        // Unknown / generic — clear once the user has changed ANY unlock key.
-        const changed =
-          form.payment_mode !== attemptedMode ||
-          amt !== attemptedAmt ||
-          form.payment_head !== blockedPayload?.payment_head;
-        stillFails = !changed;
-        if (stillFails) reason = "Form values still match the attempt that was blocked.";
-      }
-    }
-
-    return { active: true as const, stillFails, reason, failed };
+    return computeLiveBlockStatus({
+      form: {
+        payment_mode: form.payment_mode,
+        amount: Number(form.amount) || 0,
+        payment_head: form.payment_head,
+        receipt_no: form.receipt_no,
+      },
+      attempted: blockedPayload as any,
+      prev: (totals as any)?.prev ?? null,
+      failedCondition: blockedAudit.failed_condition,
+    }) as any;
   }, [blockedAudit, blockedPayload, form, totals]);
 
   // Side-effect: once the live check says the condition is resolved, drop the

@@ -159,6 +159,17 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   // Form is locked after a Postgres trigger block until Payment Type changes.
   const locked = !!blockedAudit;
 
+  // Pre-flight check: would the impact preview violate the safe_cash_amount invariant?
+  // For Adjustment/Asset we force safe_cash_amount = 0, so the only way to violate
+  // is editing a row whose previous safe_cash_amount was non-zero (cash→adjustment
+  // conversion). That exactly matches what the Postgres trigger will block.
+  const invariantWouldFail = useMemo(() => {
+    if (form.payment_mode !== "Adjustment/Asset") return false;
+    const prev = (totals as any)?.prev;
+    if (!prev) return false;
+    return Math.abs(Number(prev.safe_cash_amount) || 0) > 0.005;
+  }, [form.payment_mode, totals]);
+
   const handleSave = async () => {
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
@@ -764,12 +775,29 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
       </div>
 
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving || locked} title={locked ? "Change Payment Type to unlock" : undefined}>
-          {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-          {isEdit ? "Save changes" : "Record payment"}
-        </Button>
+      <div className="flex flex-col items-end gap-1 pt-2 border-t">
+        {invariantWouldFail && (
+          <p className="text-[11px] text-destructive font-medium">
+            ✗ Save disabled — converting a Cash/Bank payment to Adjustment/Asset would break the safe_cash_amount invariant. Delete and re-create instead.
+          </p>
+        )}
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
+          <Button
+            onClick={handleSave}
+            disabled={saving || locked || invariantWouldFail}
+            title={
+              locked
+                ? "Change Payment Type to unlock"
+                : invariantWouldFail
+                  ? "Impact preview shows the safe_cash_amount invariant would fail"
+                  : undefined
+            }
+          >
+            {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            {isEdit ? "Save changes" : "Record payment"}
+          </Button>
+        </div>
       </div>
     </div>
   );

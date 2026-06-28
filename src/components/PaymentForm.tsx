@@ -121,8 +121,12 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));
-    if (blockedAudit) setBlockedAudit(null);
+    // Only unlock the form when the user actually changes Payment Type.
+    if (blockedAudit && k === "payment_mode") setBlockedAudit(null);
   };
+
+  // Form is locked after a Postgres trigger block until Payment Type changes.
+  const locked = !!blockedAudit;
 
   const handleSave = async () => {
     const parsed = schema.safeParse(form);

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { logPaymentBlocked } from "@/lib/audit";
 
 export const PAYMENT_TYPES = ["Cash", "Bank Transfer", "Adjustment/Asset"] as const;
 export const PAYMENT_HEADS = ["Down Payment", "Installment", "Possession", "Advance", "Extra Payment"] as const;

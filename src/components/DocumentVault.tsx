@@ -148,12 +148,21 @@ export default function DocumentVault({ bookingId }: Props) {
     setLabelCustom("");
     setDocDate(format(new Date(), "yyyy-MM-dd"));
     setNotes("");
+    setSentVia("");
+    setTcsTracking("");
+    setWhatsappTo("");
   }
+
+  const isNoticeLabel = NOTICE_LABELS.has(label);
 
   async function confirmUpload() {
     if (!pendingFile) return;
     if (label === "Other" && !labelCustom.trim()) {
       toast({ variant: "destructive", title: "Custom label required" });
+      return;
+    }
+    if (isNoticeLabel && !sentVia) {
+      toast({ variant: "destructive", title: "Select how this notice was sent" });
       return;
     }
     setUploading(true);
@@ -165,6 +174,15 @@ export default function DocumentVault({ bookingId }: Props) {
         labelCustom: labelCustom.trim() || undefined,
         documentDate: docDate,
         notes: notes.trim() || undefined,
+        sentVia: isNoticeLabel ? (sentVia as SentVia) : null,
+        tcsTrackingNo:
+          isNoticeLabel && (sentVia === "TCS Courier" || sentVia === "Both")
+            ? tcsTracking.trim() || undefined
+            : undefined,
+        whatsappSentTo:
+          isNoticeLabel && (sentVia === "WhatsApp" || sentVia === "Both")
+            ? whatsappTo.trim() || null
+            : null,
       });
       toast({ title: "Document uploaded", description: pendingFile.name });
       setPendingFile(null);
@@ -176,6 +194,7 @@ export default function DocumentVault({ bookingId }: Props) {
       setUploading(false);
     }
   }
+
 
   async function confirmDelete() {
     if (!toDelete) return;

@@ -149,11 +149,21 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     [bookings, form.booking_id]
   );
 
+  // Fields whose value materially changes the cash-vs-adjustment outcome.
+  // Toggling any of them should unlock the form after a trigger block — not
+  // just Payment Type — because they're the same knobs the user has to turn
+  // to satisfy the safe_cash_amount invariant.
+  const UNLOCK_KEYS = new Set<keyof PaymentFormValue>([
+    "payment_mode",
+    "amount",
+    "payment_head",
+  ]);
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));
-    // Only unlock the form when the user actually changes Payment Type.
-    if (blockedAudit && k === "payment_mode") setBlockedAudit(null);
+    // Unlock when the user toggles any adjustment / non-cash option that
+    // could resolve the block (Payment Type, Amount, or Payment Head).
+    if (blockedAudit && UNLOCK_KEYS.has(k)) setBlockedAudit(null);
   };
 
   // Form is locked after a Postgres trigger block until Payment Type changes.
@@ -532,7 +542,6 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             ref={amountRef}
             type="number"
             min={0}
-            disabled={locked}
             value={form.amount || ""}
             onChange={(e) => set("amount", Number(e.target.value || 0))}
             className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}
@@ -547,7 +556,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
         <div>
           <Label>Payment Head *</Label>
-          <Select value={form.payment_head} disabled={locked} onValueChange={(v) => set("payment_head", v as any)}>
+          <Select value={form.payment_head} onValueChange={(v) => set("payment_head", v as any)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_HEADS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
           </Select>
@@ -679,7 +688,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
                 Open in Audit Log <ExternalLink className="h-3 w-3" />
               </Link>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                🔒 Form locked. Change <span className="font-semibold text-foreground">Payment Type</span> above to unlock and edit the rest of the fields.
+                🔒 Form locked. Toggle any adjustment / non-cash option to unlock — change <span className="font-semibold text-foreground">Payment Type</span>, <span className="font-semibold text-foreground">Amount</span>, or <span className="font-semibold text-foreground">Payment Head</span> above.
               </p>
             </div>
           </div>
@@ -881,7 +890,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
               disabled={saving || locked || invariantWouldFail}
               title={
                 locked
-                  ? "Change Payment Type to unlock"
+                  ? "Toggle Payment Type, Amount, or Payment Head to unlock"
                   : invariantWouldFail
                     ? "Impact preview shows the safe_cash_amount invariant would fail"
                     : undefined

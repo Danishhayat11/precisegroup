@@ -1044,9 +1044,12 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
 
       <PaymentBlockedAuditDrawer
         open={auditDrawerOpen}
-        onOpenChange={setAuditDrawerOpen}
-        audit={blockedAudit}
-        attempted={blockedPayload}
+        onOpenChange={(o) => {
+          setAuditDrawerOpen(o);
+          if (!o) setViewingAudit(null);
+        }}
+        audit={viewingAudit ?? blockedAudit}
+        attempted={viewingAudit ? null : blockedPayload}
       />
     </div>
   );

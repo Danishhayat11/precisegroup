@@ -629,7 +629,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
 
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving || locked} title={locked ? "Change Payment Type to unlock" : undefined}>
           {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
           {isEdit ? "Save changes" : "Record payment"}
         </Button>

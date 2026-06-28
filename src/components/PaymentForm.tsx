@@ -1294,5 +1294,6 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         }}
       />
     </div>
+    </TooltipProvider>
   );
 }

@@ -157,7 +157,14 @@ export default function BookingDetail() {
       </div>
 
       <div className="card-elevated overflow-hidden">
-        <div className="p-4 border-b text-sm font-semibold">Payment History ({data.payments.length})</div>
+        <div className="p-4 border-b text-sm font-semibold flex items-center justify-between gap-3">
+          <span>Payment History ({data.payments.length})</span>
+          <Button asChild size="sm" variant="outline">
+            <Link to={`/payment-history/${b.booking_id}`}>
+              <Printer className="h-4 w-4 mr-1" /> Print Payment History
+            </Link>
+          </Button>
+        </div>
         <div className="overflow-x-auto max-h-[40vh]">
           <table className="w-full text-sm table-sticky">
             <thead className="text-xs text-muted-foreground bg-card">

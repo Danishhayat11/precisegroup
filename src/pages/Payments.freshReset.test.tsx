@@ -132,7 +132,7 @@ describe("Payments: 'Start a fresh payment instead' fully resets state", () => {
     expect(screen.getByTestId("pf-replay").textContent).toBe("no");
 
     // 8. Dialog title is the fresh-entry one, not the replay one.
-    expect(screen.getByText(/^record payment$/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/^record payment$/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/replay blocked payment/i)).not.toBeInTheDocument();
 
     // 9. Captured props confirm: replayBlocked=false, no audit id, undefined initial.

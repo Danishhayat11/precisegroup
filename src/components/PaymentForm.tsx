@@ -143,6 +143,10 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       return { cashTotal, adjTotal, prev };
     },
     staleTime: 5_000,
+  });
+
+
+
 
 
   // Prior payment.save.blocked audit attempts for this same receipt — surfaced

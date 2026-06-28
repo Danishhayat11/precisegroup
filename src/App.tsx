@@ -18,6 +18,7 @@ import Ledger from "@/pages/Ledger";
 import Adjustments from "@/pages/Adjustments";
 import Reports from "@/pages/Reports";
 import Documents from "@/pages/Documents";
+import DocumentCenter from "@/pages/DocumentCenter";
 import DocumentView from "@/pages/DocumentView";
 import ImportCenter from "@/pages/ImportCenter";
 import AuditLog from "@/pages/AuditLog";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/adjustments" element={<Adjustments />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/document-center" element={<DocumentCenter />} />
               <Route path="/documents/:type" element={<DocumentView />} />
               <Route path="/import" element={<ImportCenter />} />
               <Route path="/audit" element={<AuditLog />} />

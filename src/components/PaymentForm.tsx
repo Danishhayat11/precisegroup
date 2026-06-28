@@ -22,7 +22,8 @@ import { useQuery } from "@tanstack/react-query";
 import { logPaymentBlocked, type PaymentBlockedAuditEntry } from "@/lib/audit";
 import { mapPaymentError } from "@/lib/paymentErrors";
 import { Link } from "react-router-dom";
-import { ShieldAlert, ExternalLink } from "lucide-react";
+import { ShieldAlert, ExternalLink, FileSearch } from "lucide-react";
+import { PaymentBlockedAuditDrawer } from "@/components/PaymentBlockedAuditDrawer";
 
 export const PAYMENT_TYPES = ["Cash", "Bank Transfer", "Adjustment/Asset"] as const;
 export const PAYMENT_HEADS = ["Down Payment", "Installment", "Possession", "Advance", "Extra Payment"] as const;
@@ -79,6 +80,8 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const [saving, setSaving] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [blockedAudit, setBlockedAudit] = useState<PaymentBlockedAuditEntry | null>(null);
+  const [blockedPayload, setBlockedPayload] = useState<Record<string, any> | null>(null);
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
   const paymentTypeRef = useRef<HTMLButtonElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -163,7 +166,10 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     setErrors((e) => ({ ...e, [k as string]: "" }));
     // Unlock when the user toggles any adjustment / non-cash option that
     // could resolve the block (Payment Type, Amount, or Payment Head).
-    if (blockedAudit && UNLOCK_KEYS.has(k)) setBlockedAudit(null);
+    if (blockedAudit && UNLOCK_KEYS.has(k)) {
+      setBlockedAudit(null);
+      setBlockedPayload(null);
+    }
   };
 
   // Form is locked after a Postgres trigger block until Payment Type changes.
@@ -270,6 +276,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           rawError: raw,
         });
         setBlockedAudit(auditEntry);
+        setBlockedPayload(payload);
 
         toast({
           variant: "destructive",
@@ -681,12 +688,22 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
                   <span className="font-mono text-[10px]">{blockedAudit.id}</span>
                 </div>
               </div>
-              <Link
-                to={`/audit?highlight=${blockedAudit.id}`}
-                className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
-              >
-                Open in Audit Log <ExternalLink className="h-3 w-3" />
-              </Link>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <Link
+                  to={`/audit?highlight=${blockedAudit.id}`}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
+                >
+                  Open in Audit Log <ExternalLink className="h-3 w-3" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setAuditDrawerOpen(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
+                >
+                  <FileSearch className="h-3 w-3" />
+                  View full audit + field-by-field diff
+                </button>
+              </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 🔒 Form locked. Toggle any adjustment / non-cash option to unlock — change <span className="font-semibold text-foreground">Payment Type</span>, <span className="font-semibold text-foreground">Amount</span>, or <span className="font-semibold text-foreground">Payment Head</span> above.
               </p>
@@ -902,6 +919,13 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           </div>
         </div>
       </div>
+
+      <PaymentBlockedAuditDrawer
+        open={auditDrawerOpen}
+        onOpenChange={setAuditDrawerOpen}
+        audit={blockedAudit}
+        attempted={blockedPayload}
+      />
     </div>
   );
 }

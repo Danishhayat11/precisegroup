@@ -127,7 +127,7 @@ describe("Payments: 'Start a fresh payment instead' fully resets state", () => {
     expect(screen.getByTestId("pf-receipt").textContent).toBe("");
     expect(screen.getByTestId("pf-booking").textContent).toBe("");
     expect(screen.getByTestId("pf-mode").textContent).toBe("");
-    expect(screen.getByTestId("pf-amount").textContent).toBe("0");
+    expect(screen.getByTestId("pf-amount").textContent).toBe("");
     expect(screen.getByTestId("pf-head").textContent).toBe("");
     expect(screen.getByTestId("pf-replay").textContent).toBe("no");
 

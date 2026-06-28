@@ -150,4 +150,60 @@ export async function logPaymentBlocked(p: {
   }
 }
 
+/**
+ * Log a `payment.save.unblocked` event — fired when the Payment form's live
+ * failed-condition re-check passes and the lock auto-clears. Captures which
+ * field(s) the user changed to make it pass, the original blocked-attempt
+ * audit id, and the prior failed condition.
+ */
+export async function logPaymentUnlock(p: {
+  receiptNo: string;
+  bookingId: string;
+  blockedAuditId: string;
+  failedCondition: string;
+  unlockTrigger: string; // human-readable e.g. "payment_mode: Adjustment/Asset → Cash"
+  changedFields: Record<string, { from: any; to: any }>;
+  currentForm: Record<string, any>;
+}): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let actor_email: string | null = user.email ?? null;
+    let full_name: string | null = null;
+    try {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof) {
+        actor_email = prof.email ?? actor_email;
+        full_name = (prof as any).full_name ?? null;
+      }
+    } catch { /* ignore */ }
+
+    await supabase.from("audit_logs").insert({
+      actor_id: user.id,
+      actor_email,
+      action: "payment.save.unblocked",
+      entity: "payment",
+      entity_id: p.receiptNo,
+      after: {
+        receipt_no: p.receiptNo,
+        booking_id: p.bookingId,
+        blocked_audit_id: p.blockedAuditId,
+        failed_condition: p.failedCondition,
+        unlock_trigger: p.unlockTrigger,
+        changed_fields: p.changedFields,
+        current_form: p.currentForm,
+        actor_full_name: full_name,
+      },
+    });
+  } catch {
+    /* never break the flow */
+  }
+}
+
+
 

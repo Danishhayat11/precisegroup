@@ -93,7 +93,66 @@ export default function DocumentView() {
         <Button onClick={() => setPreviewOpen(true)} disabled={!booking}>
           <Printer className="h-4 w-4 mr-1" /> Print Preview
         </Button>
+        {noticeLabel && (
+          <Button
+            variant="outline"
+            disabled={!booking}
+            onClick={() => { setTcsNo(""); setTcsOpen(true); }}
+          >
+            <Send className="h-4 w-4 mr-1" /> Mark as Sent via TCS
+          </Button>
+        )}
       </div>
+
+      <Dialog open={tcsOpen} onOpenChange={(o) => !tcsSaving && setTcsOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark "{title}" as sent via TCS</DialogTitle>
+            <DialogDescription>
+              Records this notice in the booking's Document Vault with today's date.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">TCS tracking number *</Label>
+              <Input
+                value={tcsNo}
+                onChange={(e) => setTcsNo(e.target.value)}
+                placeholder="e.g. TCS-123456789"
+                autoFocus
+              />
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Booking <span className="font-mono">{booking?.booking_id}</span> · {booking?.client_name}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTcsOpen(false)} disabled={tcsSaving}>Cancel</Button>
+            <Button
+              disabled={!tcsNo.trim() || tcsSaving || !booking || !noticeLabel}
+              onClick={async () => {
+                if (!booking || !noticeLabel) return;
+                setTcsSaving(true);
+                try {
+                  await createMetadataDoc({
+                    bookingId: booking.booking_id,
+                    label: noticeLabel,
+                    documentDate: format(new Date(), "yyyy-MM-dd"),
+                    notes: `TCS tracking: ${tcsNo.trim()}`,
+                    source: "legal_notice_tcs",
+                    tcsTrackingNo: tcsNo.trim(),
+                  });
+                  toast({ title: "Marked as Sent", description: `${noticeLabel} recorded in Document Vault.` });
+                  setTcsOpen(false);
+                } catch (err: any) {
+                  toast({ variant: "destructive", title: "Could not save", description: err.message });
+                } finally {
+                  setTcsSaving(false);
+                }
+              }}
+            >
+              {tcsSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Save to Vault
 
       {!booking ? (
         <div className="card-elevated p-12 text-center text-muted-foreground">Select a booking to preview.</div>

@@ -11,10 +11,12 @@ import { computeLiveBlockStatus, type LiveBlockStatus } from "@/lib/paymentLockC
  * live re-check predicate. We mock it so we can flip server state at runtime
  * and assert the UI updates without a remount / page refresh.
  */
-const fetchUnlockCondition = vi.fn<
-  [],
-  Promise<{ failed_condition: string | null; attempted: any }>
->();
+const fetchUnlockCondition = vi.fn(
+  async (): Promise<{ failed_condition: string | null; attempted: any }> => ({
+    failed_condition: null,
+    attempted: null,
+  })
+);
 
 /**
  * Tiny host that mirrors how PaymentForm wires LockedTip:

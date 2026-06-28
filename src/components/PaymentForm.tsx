@@ -1244,20 +1244,26 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
           )}
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving || locked || invariantWouldFail}
-              title={
-                locked
-                  ? "Toggle Payment Type, Amount, or Payment Head to unlock"
-                  : invariantWouldFail
-                    ? "Impact preview shows the safe_cash_amount invariant would fail"
-                    : undefined
-              }
+            <LockedTip
+              field="Save"
+              note="Save is disabled because the database trigger already rejected this exact payload. Re-submitting it would only produce another blocked audit row."
             >
-              {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              {isEdit ? "Save changes" : "Record payment"}
-            </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving || locked || invariantWouldFail}
+                title={
+                  locked
+                    ? "Toggle Payment Type, Amount, or Payment Head to unlock"
+                    : invariantWouldFail
+                      ? "Impact preview shows the safe_cash_amount invariant would fail"
+                      : undefined
+                }
+              >
+                {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                {isEdit ? "Save changes" : "Record payment"}
+              </Button>
+            </LockedTip>
+
           </div>
         </div>
       </div>

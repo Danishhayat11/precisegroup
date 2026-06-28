@@ -21,7 +21,8 @@ const nav = [
   { to: "/payments",    label: "Payments",           icon: Receipt },
   { to: "/ledger",      label: "Installment Ledger", icon: BookOpen },
   { to: "/adjustments", label: "Adjustments",        icon: Repeat2 },
-  { to: "/documents",   label: "Documents",          icon: FilePlus2 },
+  { to: "/documents",       label: "Legal Notices",      icon: FilePlus2 },
+  { to: "/document-center", label: "Document Center",    icon: FilePlus2 },
   { to: "/reports",     label: "Reports",            icon: BarChart3 },
   { to: "/settings",    label: "Settings",           icon: Settings },
 ];

@@ -890,7 +890,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
               disabled={saving || locked || invariantWouldFail}
               title={
                 locked
-                  ? "Change Payment Type to unlock"
+                  ? "Toggle Payment Type, Amount, or Payment Head to unlock"
                   : invariantWouldFail
                     ? "Impact preview shows the safe_cash_amount invariant would fail"
                     : undefined

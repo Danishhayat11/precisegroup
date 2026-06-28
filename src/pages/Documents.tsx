@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logDocumentAction } from "@/lib/audit";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { fmtPKR, fmtDate } from "@/lib/format";
 import { amountInWordsPK } from "@/lib/amountInWords";
-import { Printer, FileText, AlertTriangle, Ban, Gavel, Search, Sparkles } from "lucide-react";
+import { Printer, FileText, AlertTriangle, Ban, Gavel, Search, Sparkles, Save, Download, History, Pencil } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 type DocKey = "legal" | "final" | "final_cancel" | "cancellation";
 

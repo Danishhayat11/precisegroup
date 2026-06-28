@@ -73,9 +73,19 @@ interface PaymentFormProps {
   replayBlocked?: boolean;
   /** Audit-log row id to auto-open in the blocked-audit drawer on mount. */
   prefillAuditId?: string | null;
+  /**
+   * Parent-driven full lock (e.g. while the latest audit prefill fetch is
+   * pending or has failed). When true, every control inside the form is
+   * inaccessible: aria-disabled on the root, the root is `inert` so no
+   * keyboard focus can land inside, Submit is disabled, and individual
+   * inputs/buttons render their `disabled` state. The parent must still
+   * provide an escape (Cancel / dismiss / Retry) OUTSIDE this component.
+   */
+  locked?: boolean;
 }
 
-export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId }: PaymentFormProps) {
+export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent }: PaymentFormProps) {
+
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
   const [form, setForm] = useState<PaymentFormValue>({

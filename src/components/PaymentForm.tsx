@@ -143,6 +143,31 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       return { cashTotal, adjTotal, prev };
     },
     staleTime: 5_000,
+
+
+  // Prior payment.save.blocked audit attempts for this same receipt — surfaced
+  // in a dropdown so the user can re-open and inspect any earlier blocked save.
+  const { data: recentBlocked = [], refetch: refetchBlocked } = useQuery({
+    queryKey: ["payment-blocked-history", form.receipt_no, blockedAudit?.id ?? null],
+    enabled: !!form.receipt_no,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("audit_logs")
+        .select("id, actor_id, actor_email, created_at, after")
+        .eq("entity", "payment")
+        .eq("entity_id", form.receipt_no)
+        .eq("action", "payment.save.blocked")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return (data ?? []) as Array<{
+        id: string;
+        actor_id: string;
+        actor_email: string | null;
+        created_at: string;
+        after: any;
+      }>;
+    },
+    staleTime: 5_000,
   });
 
 

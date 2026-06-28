@@ -33,19 +33,8 @@ export default function AuditLog() {
       key: "back",
       header: "",
       cell: (r) => {
-        // Back link only makes sense for blocked payment-save attempts: we can
-        // open the Payment form pre-filled with the receipt + the exact attempt.
         if (r.action !== "payment.save.blocked" || !r.entity_id) return null;
-        return (
-          <Link
-            to={`/payments?openReceipt=${encodeURIComponent(r.entity_id)}&audit=${encodeURIComponent(r.id)}`}
-            className="inline-flex items-center gap-1 rounded border border-destructive/30 bg-destructive/5 px-2 py-0.5 text-[11px] font-semibold text-destructive hover:bg-destructive/10"
-            title={`Open the Payment form for ${r.entity_id} with this exact blocked attempt loaded`}
-          >
-            <ArrowLeftToLine className="h-3 w-3" />
-            Back to payment
-          </Link>
-        );
+        return <AuditBackToPaymentLink receiptNo={r.entity_id} auditId={r.id} />;
       },
     },
   ];

@@ -8,6 +8,7 @@ import { Printer, Save, RotateCcw, FileText } from "lucide-react";
 import { fmtDate, fmtPKR } from "@/lib/format";
 import { toast } from "sonner";
 import PrintPreviewModal from "@/components/PrintPreviewModal";
+import { logDocumentAction, logDocumentEditDebounced } from "@/lib/audit";
 
 type DocType =
   | "Legal Notice"
@@ -286,9 +287,17 @@ export default function BookingDocumentEditor({
     }
   }, [type, booking.booking_id, baseTemplate]);
 
+  const docRef = `${booking.booking_id}/${type.replace(/\s+/g, "-")}`;
+
   const handleReset = () => {
     setText(baseTemplate);
     toast.success("Reset to default template");
+    void logDocumentAction({
+      action: "document.draft.reset",
+      documentType: type,
+      referenceNo: docRef,
+      bookingId: booking.booking_id,
+    });
   };
 
   const handleSave = () => {
@@ -298,11 +307,25 @@ export default function BookingDocumentEditor({
     localStorage.setItem(k + ":meta", JSON.stringify({ savedAt: stamp }));
     setSavedAt(stamp);
     toast.success("Draft saved");
+    void logDocumentAction({
+      action: "document.draft.save",
+      documentType: type,
+      referenceNo: docRef,
+      bookingId: booking.booking_id,
+      extra: { length: text.length },
+    });
   };
 
   const handlePrint = () => {
     setPreviewOpen(true);
+    void logDocumentAction({
+      action: "document.print",
+      documentType: type,
+      referenceNo: docRef,
+      bookingId: booking.booking_id,
+    });
   };
+
 
   // Body sent to the preview modal — strip the textual letterhead block at the
   // top of templates so it doesn't double up with the printed letterhead image.
@@ -345,7 +368,16 @@ export default function BookingDocumentEditor({
       <div className="p-4 bg-muted/30">
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            logDocumentEditDebounced({
+              action: "document.draft.edit",
+              documentType: type,
+              referenceNo: docRef,
+              bookingId: booking.booking_id,
+            });
+          }}
+
           spellCheck={false}
           className="w-full min-h-[640px] rounded-md border bg-card text-foreground font-mono text-[13px] leading-relaxed p-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y"
           style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' }}

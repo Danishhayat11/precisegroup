@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logDocumentAction } from "@/lib/audit";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,7 +259,15 @@ export default function Documents() {
                 Ref: <span className="font-mono">{ctx.ref}</span> · Generated {ctx.today}
               </div>
             </div>
-            <Button onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+            <Button onClick={() => {
+              void logDocumentAction({
+                action: "document.print",
+                documentType: DOC_META[docType].title,
+                referenceNo: ctx.ref,
+                bookingId: bookingId,
+              });
+              window.print();
+            }}><Printer className="h-4 w-4 mr-1" /> Print</Button>
           </div>
 
           <div id="doc-print" className="bg-white text-black border rounded-md shadow-sm mx-auto"

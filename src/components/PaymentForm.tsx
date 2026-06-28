@@ -32,6 +32,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LockedTip as SharedLockedTip } from "@/components/PaymentFormLockedTip";
 import type { ReactNode } from "react";
 
 export const PAYMENT_TYPES = ["Cash", "Bank Transfer", "Adjustment/Asset"] as const;

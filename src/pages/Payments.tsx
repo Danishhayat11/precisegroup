@@ -397,12 +397,14 @@ export default function Payments() {
       </div>
 
       <Dialog
-        open={createOpen}
+        open={createOpen && !deepLinkGuardActive}
         onOpenChange={(o) => {
+          if (o && deepLinkGuardActive) return; // hard guard: cannot open while latest prefill is pending/failed
           setCreateOpen(o);
           if (!o) { setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }
         }}
       >
+
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{replayInitial ? "Replay blocked payment" : "Record payment"}</DialogTitle>

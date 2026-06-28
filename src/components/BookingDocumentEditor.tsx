@@ -379,6 +379,21 @@ export default function BookingDocumentEditor({
           <Button size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
+          {sentLabel && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setMarkSentOpen(true)}
+              disabled={!hasPrinted}
+              title={
+                hasPrinted
+                  ? `Log this notice as ${sentLabel.toLowerCase()} in the Document Vault`
+                  : "Print or preview the notice first, then log how it was sent"
+              }
+            >
+              <Send className="h-4 w-4 mr-1" /> Mark as Sent
+            </Button>
+          )}
         </div>
       </div>
       <div className="p-4 bg-muted/30">

@@ -54,6 +54,7 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/document-center" element={<DocumentCenter />} />
               <Route path="/documents/:type" element={<DocumentView />} />
+              <Route path="/payment-history/:bookingId" element={<PaymentHistoryView />} />
               <Route path="/import" element={<ImportCenter />} />
               <Route path="/audit" element={<AuditLog />} />
               <Route path="/logic" element={<LogicNotes />} />

@@ -185,6 +185,33 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     }
   }, [isEdit, form.receipt_no]);
 
+  // When opened via the audit-log back link, fetch the specific audit row and
+  // pop the drawer pre-loaded with that exact attempt.
+  useEffect(() => {
+    if (!prefillAuditId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("audit_logs")
+        .select("id, actor_id, actor_email, created_at, after, entity_id")
+        .eq("id", prefillAuditId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const after = (data.after ?? {}) as Record<string, any>;
+      setViewingAudit({
+        id: data.id,
+        actor_id: data.actor_id,
+        actor_email: data.actor_email,
+        actor_full_name: after.actor_full_name ?? null,
+        failed_condition: after.failed_condition ?? "",
+        receipt_no: data.entity_id ?? after.receipt_no ?? form.receipt_no,
+        created_at: data.created_at,
+      });
+      setAuditDrawerOpen(true);
+    })();
+    return () => { cancelled = true; };
+  }, [prefillAuditId]);
+
   const selectedBooking = useMemo(
     () => bookings.find((b: any) => b.booking_id === form.booking_id),
     [bookings, form.booking_id]

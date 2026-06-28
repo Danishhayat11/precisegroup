@@ -556,7 +556,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
         <div>
           <Label>Payment Head *</Label>
-          <Select value={form.payment_head} disabled={locked} onValueChange={(v) => set("payment_head", v as any)}>
+          <Select value={form.payment_head} onValueChange={(v) => set("payment_head", v as any)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_HEADS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
           </Select>

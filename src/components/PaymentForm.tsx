@@ -85,8 +85,39 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings-min"],
     queryFn: async () =>
-      (await supabase.from("bookings").select("booking_id,client_name,unit_id").order("client_name")).data ?? [],
+      (await supabase
+        .from("bookings")
+        .select("booking_id,client_name,unit_id,total_contract_value,remaining_balance,installment_amount")
+        .order("client_name")).data ?? [],
   });
+
+  // Booking-scoped ledger summary for the impact preview line.
+  const { data: bookingImpact } = useQuery({
+    queryKey: ["payment-booking-impact", form.booking_id, form.receipt_no],
+    enabled: !!form.booking_id,
+    queryFn: async () => {
+      const [{ data: led }, { data: pays }] = await Promise.all([
+        supabase
+          .from("installment_ledger")
+          .select("term_no,due_amount,paid_amount,status,due_date")
+          .eq("booking_id", form.booking_id)
+          .order("due_date", { ascending: true }),
+        supabase
+          .from("payments")
+          .select("receipt_no,amount")
+          .eq("booking_id", form.booking_id),
+      ]);
+      const ledger = led ?? [];
+      const totalDue = ledger.reduce((s, r: any) => s + (Number(r.due_amount) || 0), 0);
+      const totalPaid = ledger.reduce((s, r: any) => s + (Number(r.paid_amount) || 0), 0);
+      const bookingPaid = (pays ?? []).reduce((s, r: any) => s + (Number(r.amount) || 0), 0);
+      const prevAmt = (pays ?? []).find((p: any) => p.receipt_no === form.receipt_no)?.amount ?? 0;
+      const nextDue = ledger.find((r: any) => (r.status || "").toLowerCase() !== "paid") ?? null;
+      return { ledger, totalDue, totalPaid, bookingPaid, prevAmt: Number(prevAmt) || 0, nextDue };
+    },
+    staleTime: 5_000,
+  });
+
 
   // Live totals — used to preview the Cash / Adjustment impact of this entry.
   const { data: totals } = useQuery({

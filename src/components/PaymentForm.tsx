@@ -540,6 +540,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         </div>
         <div>
           <Label>Payment Date *</Label>
+          <LockedTip field="Payment Date" note="Date can't shift until the cash-invariant issue above is resolved.">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal h-9", !form.payment_date && "text-muted-foreground")}>
@@ -557,7 +558,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
               />
             </PopoverContent>
           </Popover>
+          </LockedTip>
           <Err k="payment_date" />
+
         </div>
         <div>
           <Label>Booking *</Label>

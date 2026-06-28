@@ -188,43 +188,24 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
     if (error) {
       setSaving(false);
       const raw = error.message || "";
-      // Detect our Postgres invariant trigger (cash totals would shift).
-      const isCashInvariant =
-        /Cash Received/i.test(raw) ||
-        /Adjustment\/Asset payment/i.test(raw) ||
-        /Cannot convert payment/i.test(raw) ||
-        /safe_cash_amount/i.test(raw);
-      if (isCashInvariant) {
-        const friendly =
-          form.payment_mode === "Adjustment/Asset"
-            ? "Adjustment/Asset payments must not affect Cash Received. Set the type back to Cash or Bank Transfer if this is a real cash receipt, otherwise leave it as Adjustment — the amount is tracked separately on the Adjustments register."
-            : "This change would alter Cash Received totals and was blocked by the database. Review the payment type and amount.";
-        setErrors((e) => ({
-          ...e,
-          payment_mode: friendly,
-          amount: form.payment_mode === "Adjustment/Asset" ? "Amount is recorded on the Adjustments register, not Cash Received." : "",
-        }));
-        // Identify which trigger condition fired (for the audit trail).
-        let failedCondition = "cash_invariant.generic";
-        if (/Cannot convert payment/i.test(raw)) failedCondition = "type_conversion_blocked";
-        else if (/safe_cash_amount = 0/i.test(raw)) failedCondition = "adjustment_safe_cash_not_zero";
-        else if (/non_cash_adjustment = true/i.test(raw)) failedCondition = "adjustment_flag_missing";
-        else if (/cash_bank_include = false/i.test(raw)) failedCondition = "cash_bank_include_inconsistent";
-        else if (/safe_cash_amount.*must equal amount/i.test(raw)) failedCondition = "cash_amount_mismatch";
+      const mapped = mapPaymentError(error as any, { paymentMode: form.payment_mode });
+
+      if (mapped.isCashInvariant) {
+        setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
 
         void logPaymentBlocked({
           receiptNo: form.receipt_no,
           bookingId: form.booking_id,
           paymentMode: form.payment_mode,
           amount: form.amount,
-          failedCondition,
+          failedCondition: mapped.failedCondition,
           rawError: raw,
         });
 
         toast({
           variant: "destructive",
-          title: "Save blocked — Cash Received would change",
-          description: "See the highlighted fields for details.",
+          title: mapped.toastTitle,
+          description: mapped.toastDescription,
         });
         // Focus Payment Type and briefly scroll/flash the Amount field
         setTimeout(() => {
@@ -235,7 +216,15 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         }, 50);
         return;
       }
-      toast({ variant: "destructive", title: "Save failed", description: raw });
+
+      if (Object.keys(mapped.fieldErrors).length) {
+        setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
+      }
+      toast({
+        variant: "destructive",
+        title: mapped.toastTitle,
+        description: mapped.toastDescription,
+      });
       return;
     }
 

@@ -22,6 +22,8 @@ import {
   Eye, Pencil, Receipt, BookOpen, FilePlus2, MessageCircle, Plus, Search, MoreHorizontal,
 } from "lucide-react";
 import { BookingForm } from "@/components/BookingForm";
+import { fetchDocSummaries } from "@/lib/bookingDocuments";
+import { cn } from "@/lib/utils";
 
 const STATUSES = ["All", "Active", "Completed", "Cancelled", "Transferred"];
 const RISKS = ["All", "HIGH", "MEDIUM", "LOW"];
@@ -55,6 +57,11 @@ export default function Bookings() {
     queryKey: ["bookings"],
     queryFn: async () =>
       (await supabase.from("bookings").select("*").order("booking_date", { ascending: false })).data ?? [],
+  });
+
+  const { data: docSummaries = {} } = useQuery({
+    queryKey: ["booking-document-summaries"],
+    queryFn: fetchDocSummaries,
   });
 
   const filtered = useMemo(() => {
@@ -128,14 +135,15 @@ export default function Bookings() {
                 <th className="text-right font-medium px-4 py-2.5 border-b">Overdue</th>
                 <th className="text-left font-medium px-4 py-2.5 border-b">Status</th>
                 <th className="text-left font-medium px-4 py-2.5 border-b">Risk</th>
+                <th className="text-left font-medium px-4 py-2.5 border-b">Docs</th>
                 <th className="text-left font-medium px-4 py-2.5 border-b">Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="text-center text-muted-foreground p-8">Loading…</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground p-8">Loading…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="text-center text-muted-foreground p-10">No bookings match these filters.</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground p-10">No bookings match these filters.</td></tr>
               ) : filtered.map((b: any) => {
                 const wa = buildWaUrl(b);
                 return (
@@ -155,6 +163,33 @@ export default function Bookings() {
                     </td>
                     <td className="px-4 py-2.5"><StatusBadge label={b.booking_status} tone={statusTone(b.booking_status)} /></td>
                     <td className="px-4 py-2.5"><StatusBadge label={b.risk_level} tone={statusTone(b.risk_level)} /></td>
+                    <td className="px-4 py-2.5">
+                      {(() => {
+                        const s = (docSummaries as any)[b.booking_id] ?? { count: 0, hasAgreement: false, hasCnic: false };
+                        const tone = !s.hasAgreement
+                          ? "bg-destructive/15 text-destructive border-destructive/30"
+                          : s.hasAgreement && s.hasCnic
+                          ? "bg-success/15 text-success border-success/30"
+                          : "bg-muted text-muted-foreground border-border";
+                        const title = !s.hasAgreement
+                          ? "Agreement to Sell missing"
+                          : s.hasAgreement && s.hasCnic
+                          ? "Agreement + CNIC on file"
+                          : "Agreement on file, CNIC missing";
+                        return (
+                          <Link
+                            to={`/bookings/${b.booking_id}`}
+                            title={title}
+                            className={cn(
+                              "inline-flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded-md border text-xs font-semibold tabular-nums",
+                              tone
+                            )}
+                          >
+                            {s.count}
+                          </Link>
+                        );
+                      })()}
+                    </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-1">
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="View" onClick={() => navigate(`/bookings/${b.booking_id}`)}>

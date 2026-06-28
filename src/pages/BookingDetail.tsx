@@ -7,6 +7,7 @@ import { fmtDate, fmtPKR, maskCNIC } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Printer } from "lucide-react";
 import BookingDocumentEditor from "@/components/BookingDocumentEditor";
+import DocumentVault from "@/components/DocumentVault";
 
 export default function BookingDetail() {
   const { id = "" } = useParams();
@@ -185,6 +186,10 @@ export default function BookingDetail() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <DocumentVault bookingId={b.booking_id} />
       </div>
 
       <div className="mt-6">

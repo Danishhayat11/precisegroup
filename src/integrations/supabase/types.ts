@@ -130,6 +130,71 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_documents: {
+        Row: {
+          booking_id: string
+          created_at: string
+          document_date: string
+          file_name: string | null
+          id: string
+          label: string
+          label_custom: string | null
+          mime_type: string | null
+          notes: string | null
+          size_bytes: number | null
+          source: string
+          storage_path: string | null
+          tcs_tracking_no: string | null
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          document_date?: string
+          file_name?: string | null
+          id?: string
+          label: string
+          label_custom?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path?: string | null
+          tcs_tracking_no?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          document_date?: string
+          file_name?: string | null
+          id?: string
+          label?: string
+          label_custom?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path?: string | null
+          tcs_tracking_no?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_documents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           address: string | null

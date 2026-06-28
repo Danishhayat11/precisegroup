@@ -1,58 +1,105 @@
-## Goal
-Replace the current "open new tab → browser print dialog" flow with an in-app **Print Preview Modal** that renders the document exactly as it will print on the A4 letterhead — with real line wrapping, multi-page splits, and a Print button that triggers the actual print.
+# Document Vault
 
-## Where it plugs in
-1. **BookingDocumentEditor** (`src/components/BookingDocumentEditor.tsx`) — the Print button currently calls `printOnLetterhead(...)` which spawns a new tab. Switch it to open the new modal.
-2. **DocumentView** (`src/pages/DocumentView.tsx`) — the Print/PDF button currently calls `window.print()` directly. Switch it to open the same modal, passing the document's rendered JSX as children.
+A per-booking file vault: upload PDFs/images/Word docs, label them, list/search/preview/download/delete, with dashboard badges and a one-click "Mark as Sent via TCS" hook on the legal-notice page.
 
-## New component: `src/components/PrintPreviewModal.tsx`
-A shadcn `Dialog` (full-screen on small screens, ~ A4+padding on desktop) that contains:
+## 1. Storage
 
-- **Header bar** — title, page count indicator ("Page 1 of N"), Zoom controls (50% / 75% / 100% / Fit), Close, and a primary **Print** button.
-- **Preview canvas** — gray background, centered stack of A4 "sheets". Each sheet is a `210mm × 297mm` div with:
-  - The letterhead JPG as background (same URL/sizing as `printOnLetterhead`).
-  - The same safe content area padding `58mm 22mm 38mm 24mm`.
-  - The body content inside.
-- **Pagination engine** — measures the rendered body and splits it across multiple A4 sheets so the user sees the exact page breaks before printing.
+- Create a **private** Supabase Storage bucket `booking-documents`.
+- Path convention: `bookings/<booking_id>/<uuid>.<ext>`.
+- RLS on `storage.objects`:
+  - `SELECT` / `INSERT` / `DELETE`: authenticated users (matches the rest of the app's staff-write model).
+- 10 MB max enforced client-side before upload; allowed mime types: PDF, JPG, PNG, DOCX.
 
-### Pagination approach
-Two modes, picked by the caller:
+## 2. New table `public.booking_documents`
 
-- **`mode: "text"`** (used by BookingDocumentEditor): body is a long pre-wrapped string.
-  - Render into an off-screen measuring div sized to the safe content width with the exact print font (`Times New Roman 11.5pt / line-height 1.55`).
-  - Walk children/line-boxes and accumulate height until it exceeds the safe content height (`297 − 58 − 38 = 201mm`), then start a new page. Splits happen on line boundaries, never mid-line.
-- **`mode: "react"`** (used by DocumentView): body is JSX (tables, grids, signatures).
-  - Render the JSX once into a hidden measuring container at the safe content width.
-  - Walk top-level block children (`.pp-block` wrappers) and group them into pages by accumulated `offsetHeight`. Tables get `break-inside: avoid` on `<tr>` so rows don't split awkwardly; long tables are allowed to span pages because each `<tr>` is its own measurable block when we flatten one level into the table.
-  - Simpler v1: group by direct children only and rely on CSS `break-inside: avoid` for tables. Acceptable because real bookings produce ≤ 1–2 pages.
+Columns (domain-specific only):
+- `booking_id` (text, FK → bookings.booking_id, on delete cascade)
+- `label` (text — one of the fixed dropdown values, or `Other`)
+- `label_custom` (text, nullable — used when label = `Other`)
+- `document_date` (date)
+- `notes` (text, nullable)
+- `storage_path` (text — object path in `booking-documents`)
+- `file_name` (text — original filename)
+- `mime_type` (text)
+- `size_bytes` (bigint)
+- `uploaded_by` (uuid → auth.users, nullable)
+- `uploaded_by_name` (text, nullable — denormalized for display)
+- `source` (text, default `manual`) — set to `legal_notice_tcs` for quick-upload entries
+- `tcs_tracking_no` (text, nullable)
+- standard `id`, `created_at`, `updated_at`
 
-### Printing
-Clicking Print injects a print-only stylesheet that:
-- Hides everything (`body > *:not(.pp-print-root) { display: none }`).
-- Sets `@page { size: A4; margin: 0 }`.
-- Shows the preview sheets at 100% (overrides the on-screen zoom transform).
-- Calls `window.print()`, then removes the stylesheet on `afterprint`.
+Grants + RLS:
+- `GRANT SELECT, INSERT, UPDATE, DELETE` to `authenticated`; `GRANT ALL` to `service_role`.
+- RLS enabled. Policies: authenticated can select/insert/update/delete (consistent with existing booking-data tables).
 
-This keeps the preview the source of truth — no second renderer, no new-tab popup, no popup-blocker issues.
+## 3. Components
 
-## Wiring changes
+- `src/components/DocumentVault.tsx` — the main panel, embedded inside `BookingDetail`.
+  - Upload button → file picker → modal asking Label (Select), Custom label input (only when `Other`), Date, Notes → uploads to storage, inserts row.
+  - List table: Label | File Name | Size | Date | Uploaded By | Notes | Preview | Download | Delete (with confirm).
+  - Total count line: "N documents on file".
+  - Search input + label filter dropdown.
+  - File-type icon (PDF / Word / Image) based on mime.
+  - Inline preview: PDFs and images open in a Dialog using a signed URL.
 
-- **`BookingDocumentEditor.handlePrint`** → open modal with `mode: "text"`, body = current `text` (with the letterhead-prefix strip preserved), title = `${type} — ${booking.booking_id}`.
-- **`DocumentView`** → wrap the existing `letterhead-page` JSX into the modal as `mode: "react"` children. Top Print button opens the modal. Keep the on-page preview as today (or remove it — see Open question).
-- **`src/lib/print.ts`** → keep `LETTERHEAD_URL` and the safe-area constants exported (modal imports them). `printOnLetterhead` can stay for now as a fallback but is no longer the primary path.
-- **`src/index.css`** → add the `@media print` rules scoped to `.pp-print-root` (the multi-page stack).
+- `src/lib/bookingDocuments.ts` — helpers: `listDocs`, `uploadDoc`, `deleteDoc`, `signedUrl`, `LABEL_OPTIONS`, size/icon utils.
 
-## Technical details
+## 4. Booking list badges (`src/pages/Bookings.tsx`)
 
-```text
-A4 sheet:           210mm × 297mm
-Safe content area:  width = 210 − 22 − 24 = 164mm
-                    height = 297 − 58 − 38 = 201mm
-Font (print):       Times New Roman, 11.5pt, line-height 1.55
-Zoom (screen only): CSS transform scale on the sheets; layout math stays in mm
+- Fetch per-booking doc counts + presence of `Agreement to Sell` and `Client CNIC Copy` in one query (group by booking_id).
+- New column "Docs":
+  - Count badge (e.g. `12`).
+  - **Red** if Agreement to Sell missing.
+  - **Green** if both Agreement and CNIC present.
+  - Neutral otherwise.
+
+## 5. Legal-notice quick upload (`src/pages/Documents.tsx` / DocumentView)
+
+- After Print/Download, show a "Mark as Sent via TCS" button.
+- Opens a small dialog: TCS tracking number (required).
+- Action: render the notice to PDF (reuse existing print pipeline → `html2pdf`/blob), upload to `booking-documents`, insert `booking_documents` row with:
+  - `label = 'Legal Notice Sent'` (or Final/Cancellation per notice type)
+  - `document_date = today`
+  - `notes = 'TCS tracking: <no>'`
+  - `tcs_tracking_no`, `source = 'legal_notice_tcs'`
+- Also updates the existing `notices` row `status = 'Sent'`, `channel = 'TCS'`.
+
+## 6. Constants
+
+```ts
+LABEL_OPTIONS = [
+  "Agreement to Sell / Booking Form",
+  "Client CNIC Copy",
+  "Client Photo",
+  "Payment Receipt (Scanned)",
+  "Legal Notice Sent",
+  "Final Legal Notice Sent",
+  "Cancellation Notice Sent",
+  "Client Reply / Response Received",
+  "Court Letter / Legal Correspondence",
+  "Cheque Copy",
+  "Bank Transfer Slip",
+  "Allotment Letter (Signed Copy)",
+  "Possession Letter (Signed Copy)",
+  "Transfer Form (Signed)",
+  "NOC / Clearance Certificate",
+  "Affidavit",
+  "Other",
+];
+MANDATORY = ["Agreement to Sell / Booking Form"];
+GREEN_REQUIRES = ["Agreement to Sell / Booking Form", "Client CNIC Copy"];
 ```
 
-Measuring container is `position: fixed; left: -10000px; width: 164mm;` with the same font stack so `getBoundingClientRect()` returns true print pixels (1mm = 3.7795px at 96dpi — we read computed heights, not assumed ones).
+## Order of execution
 
-## Open question
-In `DocumentView`, do you want to **keep the always-visible on-page A4 preview** and have the modal open on top of it, or **remove the in-page preview entirely** and only show the document inside the modal (cleaner, less duplication)? I'll default to keeping the in-page preview unless you say otherwise.
+1. Migration: bucket policies + `booking_documents` table.
+2. Library helpers + types.
+3. `DocumentVault` component + integrate into `BookingDetail`.
+4. Bookings list badges.
+5. Legal-notice "Mark as Sent via TCS" hook.
+
+## Out of scope (call out)
+
+- Versioning / replace-in-place — delete + re-upload instead.
+- Bulk upload / drag-multi — one file at a time per the spec.
+- OCR / content search — search is on label/filename/notes only.

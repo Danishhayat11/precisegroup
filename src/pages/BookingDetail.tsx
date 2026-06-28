@@ -7,6 +7,7 @@ import { fmtDate, fmtPKR, maskCNIC } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Printer } from "lucide-react";
 import BookingDocumentEditor from "@/components/BookingDocumentEditor";
+import DocumentVault from "@/components/DocumentVault";
 
 export default function BookingDetail() {
   const { id = "" } = useParams();

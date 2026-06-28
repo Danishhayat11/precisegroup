@@ -299,11 +299,15 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
           </Select>
-          {form.payment_mode === "Adjustment/Asset" && (
+          {errors.payment_mode ? (
+            <div className="mt-1 rounded-md border border-destructive/40 bg-destructive/5 px-2.5 py-1.5 text-[11px] text-destructive leading-snug">
+              <span className="font-semibold">Cash Received protected.</span> {errors.payment_mode}
+            </div>
+          ) : form.payment_mode === "Adjustment/Asset" ? (
             <p className="text-[11px] text-adjustment mt-1">
               Adjustment/Asset entries are excluded from Cash Received totals.
             </p>
-          )}
+          ) : null}
         </div>
         <div>
           <Label>Amount (PKR) *</Label>

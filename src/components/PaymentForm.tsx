@@ -73,9 +73,19 @@ interface PaymentFormProps {
   replayBlocked?: boolean;
   /** Audit-log row id to auto-open in the blocked-audit drawer on mount. */
   prefillAuditId?: string | null;
+  /**
+   * Parent-driven full lock (e.g. while the latest audit prefill fetch is
+   * pending or has failed). When true, every control inside the form is
+   * inaccessible: aria-disabled on the root, the root is `inert` so no
+   * keyboard focus can land inside, Submit is disabled, and individual
+   * inputs/buttons render their `disabled` state. The parent must still
+   * provide an escape (Cancel / dismiss / Retry) OUTSIDE this component.
+   */
+  locked?: boolean;
 }
 
-export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId }: PaymentFormProps) {
+export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent }: PaymentFormProps) {
+
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
   const [form, setForm] = useState<PaymentFormValue>({
@@ -305,8 +315,11 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     }
   }, [liveBlockStatus]);
 
-  // Form is locked after a Postgres trigger block until the live re-check passes.
-  const locked = !!blockedAudit;
+  // Form is locked after a Postgres trigger block until the live re-check
+  // passes, OR when the parent forces a lock (e.g. latest audit prefill
+  // fetch failed and we can't safely allow any interaction).
+  const locked = !!blockedAudit || !!lockedByParent;
+
 
   // Inline tooltip wrapper for locked fields. Thin shim over the shared
   // `LockedTip` component so the wording (and the integration tests that
@@ -515,7 +528,21 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      role="group"
+      aria-label="Payment form"
+      aria-disabled={locked || undefined}
+      data-locked={locked ? "true" : undefined}
+      data-locked-source={lockedByParent ? "parent" : blockedAudit ? "blocked-audit" : undefined}
+      // `inert` removes the subtree from sequential focus navigation,
+      // hit-testing, and ARIA accessibility tree interaction. We only
+      // engage it for parent-driven locks so the existing blocked-audit
+      // flow (which lets the user retype Type/Amount/Head to unlock)
+      // continues to work.
+      {...(lockedByParent ? ({ inert: "" } as any) : {})}
+    >
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>

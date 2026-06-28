@@ -838,12 +838,34 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
                 </button>
               </div>
               <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-[11px]">
-                <div className="flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-200">
-                  🔒 Form locked after blocked save
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-200">
+                    🔒 Form locked after blocked save
+                  </div>
+                  {liveBlockStatus.active && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                        liveBlockStatus.stillFails
+                          ? "border-destructive/40 bg-destructive/10 text-destructive"
+                          : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      )}
+                      title="Re-evaluated against the current form values"
+                    >
+                      {liveBlockStatus.stillFails
+                        ? `● Live re-check: still fails (${liveBlockStatus.failed})`
+                        : "● Live re-check: passes — unlocking…"}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-muted-foreground">
-                  Most fields are frozen so you can't accidentally re-submit the same invariant-violating row. Change any of the unlocked fields below to clear the block and re-enable the rest of the form.
+                  Most fields are frozen so you can't accidentally re-submit the same invariant-violating row. Toggle any unlocked field below — the failed-condition check re-runs on every change and the lock clears the moment it passes.
                 </p>
+                {liveBlockStatus.active && liveBlockStatus.stillFails && liveBlockStatus.reason && (
+                  <p className="mt-1 text-destructive">
+                    ↳ {liveBlockStatus.reason}
+                  </p>
+                )}
 
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-2">

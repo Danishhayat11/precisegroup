@@ -311,7 +311,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           <Label>Payment Date *</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9", !form.payment_date && "text-muted-foreground")}>
+              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal h-9", !form.payment_date && "text-muted-foreground")}>
                 <CalendarIcon className="h-4 w-4 mr-2" />
                 {form.payment_date ? format(new Date(form.payment_date), "dd-MMM-yyyy") : "Pick date"}
               </Button>

@@ -165,9 +165,34 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
 
     if (error) {
       setSaving(false);
-      toast({ variant: "destructive", title: "Save failed", description: error.message });
+      const raw = error.message || "";
+      // Detect our Postgres invariant trigger (cash totals would shift).
+      const isCashInvariant =
+        /Cash Received/i.test(raw) ||
+        /Adjustment\/Asset payment/i.test(raw) ||
+        /Cannot convert payment/i.test(raw) ||
+        /safe_cash_amount/i.test(raw);
+      if (isCashInvariant) {
+        const friendly =
+          form.payment_mode === "Adjustment/Asset"
+            ? "Adjustment/Asset payments must not affect Cash Received. Set the type back to Cash or Bank Transfer if this is a real cash receipt, otherwise leave it as Adjustment — the amount is tracked separately on the Adjustments register."
+            : "This change would alter Cash Received totals and was blocked by the database. Review the payment type and amount.";
+        setErrors((e) => ({
+          ...e,
+          payment_mode: friendly,
+          amount: form.payment_mode === "Adjustment/Asset" ? "Amount is recorded on the Adjustments register, not Cash Received." : "",
+        }));
+        toast({
+          variant: "destructive",
+          title: "Save blocked — Cash Received would change",
+          description: "See the highlighted fields for details.",
+        });
+        return;
+      }
+      toast({ variant: "destructive", title: "Save failed", description: raw });
       return;
     }
+
 
     // Post-write verification for adjustment rows — rollback if cash totals shifted
     if (isAdjustment) {
@@ -274,11 +299,15 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
           </Select>
-          {form.payment_mode === "Adjustment/Asset" && (
+          {errors.payment_mode ? (
+            <div className="mt-1 rounded-md border border-destructive/40 bg-destructive/5 px-2.5 py-1.5 text-[11px] text-destructive leading-snug">
+              <span className="font-semibold">Cash Received protected.</span> {errors.payment_mode}
+            </div>
+          ) : form.payment_mode === "Adjustment/Asset" ? (
             <p className="text-[11px] text-adjustment mt-1">
               Adjustment/Asset entries are excluded from Cash Received totals.
             </p>
-          )}
+          ) : null}
         </div>
         <div>
           <Label>Amount (PKR) *</Label>

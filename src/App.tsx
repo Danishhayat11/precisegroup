@@ -18,6 +18,7 @@ import Ledger from "@/pages/Ledger";
 import Adjustments from "@/pages/Adjustments";
 import Reports from "@/pages/Reports";
 import Documents from "@/pages/Documents";
+import DocumentCenter from "@/pages/DocumentCenter";
 import DocumentView from "@/pages/DocumentView";
 import ImportCenter from "@/pages/ImportCenter";
 import AuditLog from "@/pages/AuditLog";

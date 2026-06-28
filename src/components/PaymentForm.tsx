@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Check, ChevronsUpDown } from "lucide-react";
@@ -75,6 +75,8 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const paymentTypeRef = useRef<HTMLButtonElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings-min"],
@@ -223,6 +225,13 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           title: "Save blocked — Cash Received would change",
           description: "See the highlighted fields for details.",
         });
+        // Focus Payment Type and briefly scroll/flash the Amount field
+        setTimeout(() => {
+          paymentTypeRef.current?.focus();
+          paymentTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          amountRef.current?.classList.add("ring-2", "ring-destructive");
+          setTimeout(() => amountRef.current?.classList.remove("ring-2", "ring-destructive"), 1800);
+        }, 50);
         return;
       }
       toast({ variant: "destructive", title: "Save failed", description: raw });
@@ -332,7 +341,12 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         <div>
           <Label>Payment Type *</Label>
           <Select value={form.payment_mode} onValueChange={(v) => set("payment_mode", v as any)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger
+              ref={paymentTypeRef}
+              className={cn(errors.payment_mode && "border-destructive ring-2 ring-destructive/40 focus:ring-destructive")}
+            >
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>{PAYMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
           </Select>
           {errors.payment_mode ? (
@@ -347,7 +361,14 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
         <div>
           <Label>Amount (PKR) *</Label>
-          <Input type="number" min={0} value={form.amount || ""} onChange={(e) => set("amount", Number(e.target.value || 0))} />
+          <Input
+            ref={amountRef}
+            type="number"
+            min={0}
+            value={form.amount || ""}
+            onChange={(e) => set("amount", Number(e.target.value || 0))}
+            className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}
+          />
           <Err k="amount" />
         </div>
         <div>

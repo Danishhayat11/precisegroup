@@ -85,8 +85,39 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings-min"],
     queryFn: async () =>
-      (await supabase.from("bookings").select("booking_id,client_name,unit_id").order("client_name")).data ?? [],
+      (await supabase
+        .from("bookings")
+        .select("booking_id,client_name,unit_id,total_contract_value,remaining_balance,installment_amount")
+        .order("client_name")).data ?? [],
   });
+
+  // Booking-scoped ledger summary for the impact preview line.
+  const { data: bookingImpact } = useQuery({
+    queryKey: ["payment-booking-impact", form.booking_id, form.receipt_no],
+    enabled: !!form.booking_id,
+    queryFn: async () => {
+      const [{ data: led }, { data: pays }] = await Promise.all([
+        supabase
+          .from("installment_ledger")
+          .select("term_no,due_amount,paid_amount,status,due_date")
+          .eq("booking_id", form.booking_id)
+          .order("due_date", { ascending: true }),
+        supabase
+          .from("payments")
+          .select("receipt_no,amount")
+          .eq("booking_id", form.booking_id),
+      ]);
+      const ledger = led ?? [];
+      const totalDue = ledger.reduce((s, r: any) => s + (Number(r.due_amount) || 0), 0);
+      const totalPaid = ledger.reduce((s, r: any) => s + (Number(r.paid_amount) || 0), 0);
+      const bookingPaid = (pays ?? []).reduce((s, r: any) => s + (Number(r.amount) || 0), 0);
+      const prevAmt = (pays ?? []).find((p: any) => p.receipt_no === form.receipt_no)?.amount ?? 0;
+      const nextDue = ledger.find((r: any) => (r.status || "").toLowerCase() !== "paid") ?? null;
+      return { ledger, totalDue, totalPaid, bookingPaid, prevAmt: Number(prevAmt) || 0, nextDue };
+    },
+    staleTime: 5_000,
+  });
+
 
   // Live totals — used to preview the Cash / Adjustment impact of this entry.
   const { data: totals } = useQuery({
@@ -411,6 +442,81 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           </Select>
         </div>
       </div>
+
+      {/* Booking & installment impact preview line */}
+      {selectedBooking && bookingImpact && (() => {
+        const amt = Number(form.amount) || 0;
+        const contract = Number((selectedBooking as any).total_contract_value) || 0;
+        const remainingNow = Number((selectedBooking as any).remaining_balance);
+        const remainingBase = Number.isFinite(remainingNow)
+          ? remainingNow
+          : Math.max(0, contract - bookingImpact.totalPaid);
+        const netDelta = amt - bookingImpact.prevAmt;
+        const projectedRemaining = Math.max(0, remainingBase - netDelta);
+        const nextDue = bookingImpact.nextDue as any;
+        const installmentAmt = Number((selectedBooking as any).installment_amount) || 0;
+        return (
+          <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <div className="font-semibold text-foreground">
+                {selectedBooking.client_name}
+                <span className="ml-2 font-mono text-[11px] text-muted-foreground">
+                  {selectedBooking.booking_id} · Unit {selectedBooking.unit_id}
+                </span>
+              </div>
+              <div className="text-muted-foreground">
+                Contract <span className="font-semibold text-foreground tabular-nums">{fmtPKR(contract)}</span>
+                <span className="mx-2">·</span>
+                Paid <span className="font-semibold text-foreground tabular-nums">{fmtPKR(bookingImpact.totalPaid)}</span>
+                <span className="mx-2">·</span>
+                Remaining <span className="font-semibold text-foreground tabular-nums">{fmtPKR(remainingBase)}</span>
+              </div>
+            </div>
+            {nextDue && (
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Next installment: term {nextDue.term_no} · due {nextDue.due_date}
+                {installmentAmt > 0 && <> · <span className="tabular-nums">{fmtPKR(installmentAmt)}</span></>}
+                {Number(nextDue.paid_amount) > 0 && (
+                  <> · paid <span className="tabular-nums">{fmtPKR(Number(nextDue.paid_amount))}</span></>
+                )}
+              </div>
+            )}
+            {amt > 0 && (
+              <div className="mt-2 pt-2 border-t border-border/60 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <div>
+                  <span className="text-muted-foreground">After this save: </span>
+                  <span className="font-semibold tabular-nums">
+                    Paid {fmtPKR(bookingImpact.totalPaid + netDelta)}
+                  </span>
+                  <span className="mx-2 text-muted-foreground">→</span>
+                  <span className={cn(
+                    "font-semibold tabular-nums",
+                    projectedRemaining === 0 ? "text-success" : "text-foreground"
+                  )}>
+                    Remaining {fmtPKR(projectedRemaining)}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Δ remaining <span className={cn(
+                    "font-semibold tabular-nums",
+                    netDelta > 0 ? "text-success" : netDelta < 0 ? "text-destructive" : "text-muted-foreground"
+                  )}>
+                    {netDelta === 0 ? "PKR 0" : `${netDelta > 0 ? "−" : "+"} ${fmtPKR(Math.abs(netDelta))}`}
+                  </span>
+                  {isEdit && bookingImpact.prevAmt !== 0 && (
+                    <span className="ml-1">(net of previous {fmtPKR(bookingImpact.prevAmt)})</span>
+                  )}
+                </div>
+                {netDelta > remainingBase + 0.5 && (
+                  <span className="text-[11px] font-semibold text-destructive">
+                    ⚠ Exceeds remaining balance by {fmtPKR(netDelta - remainingBase)}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Audit log surfacing — appears when a save was rejected */}
       {blockedAudit && (

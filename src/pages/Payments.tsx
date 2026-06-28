@@ -205,17 +205,31 @@ export default function Payments() {
   const typeBadgeTone = (m: string) =>
     m === "Cash" ? "success" : m === "Bank Transfer" ? "info" : "adjustment";
 
+  // Route guard: when the URL contains a deep-link (openReceipt + optional audit),
+  // PaymentForm must stay inaccessible until the latest audit prefill fetch
+  // succeeds (i.e. replayInitial is populated). This blocks BOTH the "Record
+  // payment" button AND the Dialog open prop, so neither direct navigation nor
+  // a user click can mount the form with stale/empty prefill while a deep-link
+  // is pending or has failed.
+  const deepLinkGuardActive = !!openReceiptParam && !replayInitial;
+
   return (
     <div>
       <PageHeader
         title="Payments"
         description={`${rows.length} receipts · Cash & Bank kept separate from Adjustment/Asset`}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button
+            onClick={() => { if (!deepLinkGuardActive) setCreateOpen(true); }}
+            disabled={deepLinkGuardActive}
+            aria-disabled={deepLinkGuardActive}
+            title={deepLinkGuardActive ? "Waiting for the linked audit attempt to load…" : undefined}
+          >
             <Plus className="h-4 w-4" /> Record payment
           </Button>
         }
       />
+
 
       {replayError && (
         <div
@@ -383,12 +397,14 @@ export default function Payments() {
       </div>
 
       <Dialog
-        open={createOpen}
+        open={createOpen && !deepLinkGuardActive}
         onOpenChange={(o) => {
+          if (o && deepLinkGuardActive) return; // hard guard: cannot open while latest prefill is pending/failed
           setCreateOpen(o);
           if (!o) { setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }
         }}
       >
+
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{replayInitial ? "Replay blocked payment" : "Record payment"}</DialogTitle>

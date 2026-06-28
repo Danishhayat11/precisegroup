@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable, Column } from "@/components/DataTable";
 import { fmtDate } from "@/lib/format";
-import { ArrowLeftToLine } from "lucide-react";
+import { AuditBackToPaymentLink } from "@/components/AuditBackToPaymentLink";
 
 export default function AuditLog() {
   const [params] = useSearchParams();

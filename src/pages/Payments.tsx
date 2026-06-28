@@ -141,7 +141,8 @@ export default function Payments() {
       cancelled = true;
     };
 
-  }, [openReceiptParam, auditIdParam]);
+  }, [openReceiptParam, auditIdParam, retryNonce]);
+
 
   const clearReplayParams = () => {
     const next = new URLSearchParams(params);

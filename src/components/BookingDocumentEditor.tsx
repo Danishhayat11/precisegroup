@@ -332,6 +332,7 @@ export default function BookingDocumentEditor({
 
   const handlePrint = () => {
     setPreviewOpen(true);
+    setHasPrinted(true);
     void logDocumentAction({
       action: "document.print",
       documentType: type,
@@ -339,6 +340,7 @@ export default function BookingDocumentEditor({
       bookingId: booking.booking_id,
     });
   };
+
 
 
   // Body sent to the preview modal — strip the textual letterhead block at the

@@ -301,22 +301,160 @@ export default function Documents() {
               <div className="text-sm font-semibold">Step 4 — Document preview</div>
               <div className="text-xs text-muted-foreground">
                 Ref: <span className="font-mono">{ctx.ref}</span> · Generated {ctx.today}
+                {savedNoticeId && <span className="ml-2 text-success font-semibold">· Draft saved</span>}
+                {editing && <span className="ml-2 text-amber-600 font-semibold">· Editing</span>}
               </div>
             </div>
-            <Button onClick={() => {
-              void logDocumentAction({
-                action: "document.print",
-                documentType: DOC_META[docType].title,
-                referenceNo: ctx.ref,
-                bookingId: bookingId,
-              });
-              window.print();
-            }}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={editing ? "default" : "outline"}
+                size="sm"
+                onClick={() => setEditing((e) => !e)}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                {editing ? "Done editing" : "Edit text"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const yr = new Date().getFullYear();
+                  const body = {
+                    html: printRef.current?.innerHTML ?? null,
+                    placeholders: { ...ctx, overdueRows: undefined },
+                  };
+                  const channel: string[] = [];
+                  const payload = {
+                    ref_no: ctx.ref,
+                    booking_id: bookingId,
+                    doc_type: DOC_DB_TYPE[docType],
+                    notice_date: format(new Date(), "yyyy-MM-dd"),
+                    deadline_date: DOC_META[docType].deadline
+                      ? format(addDays(new Date(), DOC_META[docType].deadline), "yyyy-MM-dd")
+                      : null,
+                    previous_notice_date: prevNotice1 || null,
+                    previous_notice_2_date: prevNotice2 || null,
+                    unit_no: booking.unit_id,
+                    serial,
+                    year: yr,
+                    channel,
+                    status: "draft",
+                    client_title: ctx.title,
+                    overdue_amount: overdueAmount,
+                    overdue_count: overdueCount,
+                    body,
+                  };
+                  const { data, error } = savedNoticeId
+                    ? await supabase.from("notices").update(payload).eq("id", savedNoticeId).select("id").single()
+                    : await supabase.from("notices").insert(payload).select("id").single();
+                  if (error) {
+                    toast({ variant: "destructive", title: "Save failed", description: error.message });
+                    return;
+                  }
+                  setSavedNoticeId(data.id);
+                  void logDocumentAction({
+                    action: "document.draft.save",
+                    documentType: DOC_META[docType].title,
+                    referenceNo: ctx.ref,
+                    bookingId,
+                  });
+                  qc.invalidateQueries({ queryKey: ["notice-history", bookingId] });
+                  toast({ title: "Draft saved", description: `${ctx.ref} stored in notice history.` });
+                }}
+              >
+                <Save className="h-4 w-4 mr-1" /> Save draft
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!printRef.current) return;
+                  void logDocumentAction({
+                    action: "document.download",
+                    documentType: DOC_META[docType].title,
+                    referenceNo: ctx.ref,
+                    bookingId,
+                  });
+                  await html2pdf()
+                    .from(printRef.current)
+                    .set({
+                      margin: 0,
+                      filename: `${ctx.ref.replace(/[\\/]/g, "-")}.pdf`,
+                      image: { type: "jpeg", quality: 0.98 },
+                      html2canvas: { scale: 2, useCORS: true },
+                      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                    })
+                    .save();
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" /> Download PDF
+              </Button>
+              <Button size="sm" onClick={() => {
+                void logDocumentAction({
+                  action: "document.print",
+                  documentType: DOC_META[docType].title,
+                  referenceNo: ctx.ref,
+                  bookingId,
+                });
+                window.print();
+              }}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+            </div>
           </div>
 
-          <div id="doc-print" className="bg-white text-black border rounded-md shadow-sm mx-auto"
-               style={{ width: "210mm", minHeight: "297mm", padding: "25mm", boxSizing: "border-box", fontFamily: '"Times New Roman", Georgia, serif', fontSize: "11pt", lineHeight: 1.55 }}>
+          <div
+            ref={printRef}
+            id="doc-print"
+            contentEditable={editing}
+            suppressContentEditableWarning
+            className={`bg-white text-black border rounded-md shadow-sm mx-auto ${editing ? "outline outline-2 outline-amber-400" : ""}`}
+            style={{ width: "210mm", minHeight: "297mm", padding: "25mm", boxSizing: "border-box", fontFamily: '"Times New Roman", Georgia, serif', fontSize: "11pt", lineHeight: 1.55 }}
+          >
             <DocBody doc={docType} c={ctx} />
+          </div>
+        </Card>
+      )}
+
+      {/* Notice history per booking */}
+      {booking && noticeHistory.length > 0 && (
+        <Card className="p-4 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <History className="h-4 w-4" />
+            <div className="text-sm font-semibold">Notice history for this booking</div>
+            <Badge variant="secondary" className="ml-1">{noticeHistory.length}</Badge>
+          </div>
+          <div className="border rounded-md divide-y text-xs">
+            {noticeHistory.map((n: any) => (
+              <div key={n.id} className="p-2 flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[11px]">{n.ref_no}</span>
+                <Badge variant="outline" className="text-[10px]">
+                  {(n.doc_type || "").replace(/_/g, " ")}
+                </Badge>
+                <span className="text-muted-foreground">{FMT_DATE(n.notice_date)}</span>
+                {Array.isArray(n.channel) && n.channel.length > 0 && (
+                  <span className="text-muted-foreground">via {n.channel.join(", ")}</span>
+                )}
+                <Badge
+                  variant={n.status === "delivered" ? "default" : n.status === "sent" ? "secondary" : "outline"}
+                  className="ml-auto text-[10px]"
+                >
+                  {n.status}
+                </Badge>
+                <select
+                  value={n.status}
+                  onChange={async (e) => {
+                    const v = e.target.value;
+                    const { error } = await supabase.from("notices").update({ status: v }).eq("id", n.id);
+                    if (error) toast({ variant: "destructive", title: "Update failed", description: error.message });
+                    else qc.invalidateQueries({ queryKey: ["notice-history", bookingId] });
+                  }}
+                  className="text-[10px] border rounded px-1 py-0.5 bg-background"
+                >
+                  <option value="draft">draft</option>
+                  <option value="sent">sent</option>
+                  <option value="delivered">delivered</option>
+                </select>
+              </div>
+            ))}
           </div>
         </Card>
       )}

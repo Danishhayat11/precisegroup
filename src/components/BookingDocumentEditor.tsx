@@ -4,11 +4,20 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Printer, Save, RotateCcw, FileText } from "lucide-react";
+import { Printer, Save, RotateCcw, FileText, Send } from "lucide-react";
 import { fmtDate, fmtPKR } from "@/lib/format";
 import { toast } from "sonner";
 import PrintPreviewModal from "@/components/PrintPreviewModal";
+import QuickLogSentDialog from "@/components/QuickLogSentDialog";
 import { logDocumentAction, logDocumentEditDebounced } from "@/lib/audit";
+
+/** Maps a generated document type to the Vault label used by "Mark as Sent". */
+const SENT_LABEL_FOR_TYPE: Partial<Record<string, string>> = {
+  "Legal Notice": "Legal Notice Sent",
+  "Final Legal Notice": "Final Legal Notice Sent",
+  "Cancellation Notice": "Cancellation Notice Sent",
+};
+
 
 type DocType =
   | "Legal Notice"

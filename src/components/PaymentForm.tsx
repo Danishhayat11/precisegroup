@@ -1100,23 +1100,32 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         {form.payment_mode === "Bank Transfer" && (
           <div>
             <Label>Bank Name</Label>
-            <Input value={form.account ?? ""} disabled={locked} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
+            <LockedTip field="Bank Name" note="Bank/account changes are blocked while the trigger rejection stands — the row itself can't be saved yet.">
+              <Input value={form.account ?? ""} disabled={locked} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
+            </LockedTip>
           </div>
         )}
         <div>
           <Label>Cheque / Reference Number</Label>
-          <Input value={form.cheque_txn_no ?? ""} disabled={locked} onChange={(e) => set("cheque_txn_no", e.target.value)} />
+          <LockedTip field="Cheque / Reference Number" note="Reference data is frozen so you don't tweak it while the same invariant-violating row is sitting in the form.">
+            <Input value={form.cheque_txn_no ?? ""} disabled={locked} onChange={(e) => set("cheque_txn_no", e.target.value)} />
+          </LockedTip>
         </div>
         <div>
           <Label>Received By</Label>
-          <Input value={form.posted_by ?? ""} disabled={locked} onChange={(e) => set("posted_by", e.target.value)} />
+          <LockedTip field="Received By" note="Receiver name is locked together with the rest of the metadata until the cash-invariant block clears.">
+            <Input value={form.posted_by ?? ""} disabled={locked} onChange={(e) => set("posted_by", e.target.value)} />
+          </LockedTip>
         </div>
       </div>
 
       <div>
         <Label>Notes</Label>
-        <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
+        <LockedTip field="Notes" note="Notes are read-only while a blocked attempt is open so they stay in sync with the audited payload.">
+          <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
+        </LockedTip>
       </div>
+
 
       <div className="flex flex-col gap-2 pt-2 border-t sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">

@@ -688,12 +688,22 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
                   <span className="font-mono text-[10px]">{blockedAudit.id}</span>
                 </div>
               </div>
-              <Link
-                to={`/audit?highlight=${blockedAudit.id}`}
-                className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
-              >
-                Open in Audit Log <ExternalLink className="h-3 w-3" />
-              </Link>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <Link
+                  to={`/audit?highlight=${blockedAudit.id}`}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
+                >
+                  Open in Audit Log <ExternalLink className="h-3 w-3" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setAuditDrawerOpen(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-destructive hover:underline"
+                >
+                  <FileSearch className="h-3 w-3" />
+                  View full audit + field-by-field diff
+                </button>
+              </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 🔒 Form locked. Toggle any adjustment / non-cash option to unlock — change <span className="font-semibold text-foreground">Payment Type</span>, <span className="font-semibold text-foreground">Amount</span>, or <span className="font-semibold text-foreground">Payment Head</span> above.
               </p>

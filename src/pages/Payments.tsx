@@ -17,7 +17,8 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { CalendarIcon, FileText, Plus, Search } from "lucide-react";
+import { AlertTriangle, CalendarIcon, FileText, Plus, Search, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { PaymentForm, PAYMENT_TYPES } from "@/components/PaymentForm";
 import { PaymentReceipt } from "@/components/PaymentReceipt";

@@ -24,6 +24,7 @@ import { mapPaymentError } from "@/lib/paymentErrors";
 import { Link } from "react-router-dom";
 import { ShieldAlert, ExternalLink, FileSearch, History, ChevronDown } from "lucide-react";
 import { PaymentBlockedAuditDrawer } from "@/components/PaymentBlockedAuditDrawer";
+import { computeLiveBlockStatus } from "@/lib/paymentLockCheck";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,

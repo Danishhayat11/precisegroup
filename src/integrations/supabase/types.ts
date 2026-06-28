@@ -418,6 +418,83 @@ export type Database = {
           },
         ]
       }
+      notices: {
+        Row: {
+          body: Json | null
+          booking_id: string
+          channel: string[]
+          client_title: string | null
+          created_at: string
+          created_by: string | null
+          deadline_date: string | null
+          doc_type: string
+          id: string
+          notice_date: string
+          overdue_amount: number | null
+          overdue_count: number | null
+          previous_notice_2_date: string | null
+          previous_notice_date: string | null
+          ref_no: string
+          serial: number
+          status: string
+          unit_no: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          body?: Json | null
+          booking_id: string
+          channel?: string[]
+          client_title?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_date?: string | null
+          doc_type: string
+          id?: string
+          notice_date?: string
+          overdue_amount?: number | null
+          overdue_count?: number | null
+          previous_notice_2_date?: string | null
+          previous_notice_date?: string | null
+          ref_no: string
+          serial: number
+          status?: string
+          unit_no?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          body?: Json | null
+          booking_id?: string
+          channel?: string[]
+          client_title?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_date?: string | null
+          doc_type?: string
+          id?: string
+          notice_date?: string
+          overdue_amount?: number | null
+          overdue_count?: number | null
+          previous_notice_2_date?: string | null
+          previous_notice_date?: string | null
+          ref_no?: string
+          serial?: number
+          status?: string
+          unit_no?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["booking_id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           account: string | null
@@ -657,6 +734,10 @@ export type Database = {
         Returns: boolean
       }
       is_writer: { Args: { _uid: string }; Returns: boolean }
+      next_notice_serial: {
+        Args: { _booking_id: string; _year: number }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "viewer"

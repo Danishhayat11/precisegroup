@@ -287,9 +287,17 @@ export default function BookingDocumentEditor({
     }
   }, [type, booking.booking_id, baseTemplate]);
 
+  const docRef = `${booking.booking_id}/${type.replace(/\s+/g, "-")}`;
+
   const handleReset = () => {
     setText(baseTemplate);
     toast.success("Reset to default template");
+    void logDocumentAction({
+      action: "document.draft.reset",
+      documentType: type,
+      referenceNo: docRef,
+      bookingId: booking.booking_id,
+    });
   };
 
   const handleSave = () => {
@@ -299,11 +307,25 @@ export default function BookingDocumentEditor({
     localStorage.setItem(k + ":meta", JSON.stringify({ savedAt: stamp }));
     setSavedAt(stamp);
     toast.success("Draft saved");
+    void logDocumentAction({
+      action: "document.draft.save",
+      documentType: type,
+      referenceNo: docRef,
+      bookingId: booking.booking_id,
+      extra: { length: text.length },
+    });
   };
 
   const handlePrint = () => {
     setPreviewOpen(true);
+    void logDocumentAction({
+      action: "document.print",
+      documentType: type,
+      referenceNo: docRef,
+      bookingId: booking.booking_id,
+    });
   };
+
 
   // Body sent to the preview modal — strip the textual letterhead block at the
   // top of templates so it doesn't double up with the printed letterhead image.

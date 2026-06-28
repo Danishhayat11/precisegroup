@@ -359,6 +359,75 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
       </div>
 
+      {/* Cash / Adjustment impact preview */}
+      {(() => {
+        const isAdj = form.payment_mode === "Adjustment/Asset";
+        const amt = Number(form.amount) || 0;
+        const cashDelta = isAdj ? 0 : amt;
+        const adjDelta = isAdj ? amt : 0;
+        const curCash = totals?.cashTotal ?? 0;
+        const curAdj = totals?.adjTotal ?? 0;
+        return (
+          <div className={cn(
+            "rounded-md border p-3 text-xs",
+            isAdj ? "border-adjustment/40 bg-adjustment/5" : "border-border bg-muted/30"
+          )}>
+            <div className="font-semibold text-foreground mb-2 flex items-center justify-between">
+              <span>Impact preview {isAdj && <span className="text-adjustment">· Adjustment/Asset entry</span>}</span>
+              {isAdj && (
+                <span className="text-[10px] uppercase tracking-wide text-adjustment font-semibold">
+                  Cash Received must not change
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground">Current Cash Total</div>
+                <div className="tabular-nums font-semibold">{fmtPKR(curCash)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground">Current Adjustment Total</div>
+                <div className="tabular-nums font-semibold text-adjustment">{fmtPKR(curAdj)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground">Cash Δ after save</div>
+                <div className={cn(
+                  "tabular-nums font-semibold",
+                  cashDelta === 0 ? "text-muted-foreground" : "text-success"
+                )}>
+                  {cashDelta === 0 ? "PKR 0  (unchanged)" : `+ ${fmtPKR(cashDelta)}`}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase text-muted-foreground">Adjustment Δ after save</div>
+                <div className={cn(
+                  "tabular-nums font-semibold",
+                  adjDelta === 0 ? "text-muted-foreground" : "text-adjustment"
+                )}>
+                  {adjDelta === 0 ? "PKR 0  (unchanged)" : `+ ${fmtPKR(adjDelta)}`}
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-border/60 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="md:col-span-2">
+                <div className="text-[10px] uppercase text-muted-foreground">Projected Cash Total</div>
+                <div className="tabular-nums font-semibold">{fmtPKR(curCash + cashDelta)}</div>
+              </div>
+              <div className="md:col-span-2">
+                <div className="text-[10px] uppercase text-muted-foreground">Projected Adjustment Total</div>
+                <div className="tabular-nums font-semibold text-adjustment">{fmtPKR(curAdj + adjDelta)}</div>
+              </div>
+            </div>
+            {isAdj && cashDelta === 0 && (
+              <p className="text-[11px] text-success mt-2">
+                ✓ safe_cash_amount = 0 — Cash Received totals will stay locked.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {form.payment_mode === "Bank Transfer" && (
           <div>

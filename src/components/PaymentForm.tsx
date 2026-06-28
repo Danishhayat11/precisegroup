@@ -908,26 +908,114 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       </div>
 
       <div className="flex flex-col gap-2 pt-2 border-t sm:flex-row sm:items-center sm:justify-between">
-        <Link
-          to={
-            blockedAudit
-              ? `/audit?highlight=${blockedAudit.id}`
-              : `/audit?entity=payment&entity_id=${encodeURIComponent(form.receipt_no)}&action=payment.save.blocked`
-          }
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-          title={
-            blockedAudit
-              ? "Open the audit entry for the most recent blocked save"
-              : "Open the audit log filtered to blocked-save attempts for this receipt"
-          }
-        >
-          <ShieldAlert className="h-3 w-3" />
-          View audit log
-          {blockedAudit && <span className="text-destructive font-semibold">· 1 blocked</span>}
-          <ExternalLink className="h-3 w-3" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to={
+              blockedAudit
+                ? `/audit?highlight=${blockedAudit.id}`
+                : `/audit?entity=payment&entity_id=${encodeURIComponent(form.receipt_no)}&action=payment.save.blocked`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+            title={
+              blockedAudit
+                ? "Open the audit entry for the most recent blocked save"
+                : "Open the audit log filtered to blocked-save attempts for this receipt"
+            }
+          >
+            <ShieldAlert className="h-3 w-3" />
+            View audit log
+            {blockedAudit && <span className="text-destructive font-semibold">· 1 blocked</span>}
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                disabled={recentBlocked.length === 0}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px]",
+                  recentBlocked.length === 0
+                    ? "text-muted-foreground/50 border-muted cursor-not-allowed"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted border-muted"
+                )}
+                title={
+                  recentBlocked.length === 0
+                    ? "No prior blocked saves recorded for this receipt"
+                    : `Open any of the ${recentBlocked.length} prior payment.save.blocked attempts for ${form.receipt_no}`
+                }
+              >
+                <History className="h-3 w-3" />
+                Recent blocked saves
+                {recentBlocked.length > 0 && (
+                  <span className="rounded-full bg-destructive/15 px-1.5 py-px text-[10px] font-semibold text-destructive">
+                    {recentBlocked.length}
+                  </span>
+                )}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[360px] max-h-[320px] overflow-auto">
+              <DropdownMenuLabel className="text-[11px]">
+                payment.save.blocked · {form.receipt_no}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {recentBlocked.length === 0 ? (
+                <div className="px-2 py-3 text-[11px] text-muted-foreground">
+                  No prior blocked attempts.
+                </div>
+              ) : (
+                recentBlocked.map((row) => {
+                  const after = (row.after ?? {}) as Record<string, any>;
+                  const isCurrent = blockedAudit?.id === row.id;
+                  return (
+                    <DropdownMenuItem
+                      key={row.id}
+                      onClick={() => {
+                        setViewingAudit({
+                          id: row.id,
+                          actor_id: row.actor_id,
+                          actor_email: row.actor_email,
+                          actor_full_name: after.actor_full_name ?? null,
+                          failed_condition: after.failed_condition ?? "",
+                          receipt_no: form.receipt_no,
+                          created_at: row.created_at,
+                        });
+                        setAuditDrawerOpen(true);
+                      }}
+                      className="flex flex-col items-start gap-0.5 py-2"
+                    >
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] tabular-nums">
+                          {new Date(row.created_at).toLocaleString("en-PK")}
+                        </span>
+                        {isCurrent && (
+                          <span className="rounded bg-destructive/10 px-1 text-[9px] font-semibold uppercase text-destructive">
+                            latest
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate w-full">
+                        {after.payment_mode ?? "—"} · {fmtPKR(Number(after.amount) || 0)}
+                      </div>
+                      {after.failed_condition && (
+                        <code className="block w-full truncate rounded bg-destructive/10 px-1 py-0.5 font-mono text-[9px] text-destructive">
+                          {after.failed_condition}
+                        </code>
+                      )}
+                      <div className="text-[10px] text-muted-foreground truncate w-full">
+                        {row.actor_email ?? row.actor_id}
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="flex flex-col items-end gap-1">
           {invariantWouldFail && (
             <p className="text-[11px] text-destructive font-medium">

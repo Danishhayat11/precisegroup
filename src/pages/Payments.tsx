@@ -24,8 +24,10 @@ import { PaymentReceipt } from "@/components/PaymentReceipt";
 
 export default function Payments() {
   const qc = useQueryClient();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const bookingFilter = params.get("booking") ?? "";
+  const openReceiptParam = params.get("openReceipt");
+  const auditIdParam = params.get("audit");
 
   const [search, setSearch] = useState("");
   const [type, setType] = useState("All");
@@ -33,6 +35,41 @@ export default function Payments() {
   const [to, setTo] = useState<string>("");
   const [createOpen, setCreateOpen] = useState(false);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
+  const [replayInitial, setReplayInitial] = useState<
+    (Partial<import("@/components/PaymentForm").PaymentFormValue> & { booking_id?: string }) | null
+  >(null);
+  const [replayAuditId, setReplayAuditId] = useState<string | null>(null);
+
+  // Honor /payments?openReceipt=PAY-00012&audit=<id> from the audit log back link.
+  // Fetch the audit row's `after` payload, prefill the form, and pop the dialog.
+  useMemo(() => {
+    if (!openReceiptParam) return;
+    (async () => {
+      let after: Record<string, any> = {};
+      if (auditIdParam) {
+        const { data } = await supabase
+          .from("audit_logs")
+          .select("after")
+          .eq("id", auditIdParam)
+          .maybeSingle();
+        after = (data?.after ?? {}) as Record<string, any>;
+      }
+      setReplayInitial({
+        receipt_no: openReceiptParam,
+        booking_id: after.booking_id ?? "",
+        payment_mode: after.payment_mode,
+        amount: Number(after.amount) || 0,
+      });
+      setReplayAuditId(auditIdParam ?? null);
+      setCreateOpen(true);
+      // Strip the params so a refresh / cancel doesn't keep reopening the dialog.
+      const next = new URLSearchParams(params);
+      next.delete("openReceipt");
+      next.delete("audit");
+      setParams(next, { replace: true });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openReceiptParam, auditIdParam]);
 
   const { data: rows = [] } = useQuery({
     queryKey: ["payments"],
@@ -208,25 +245,39 @@ export default function Payments() {
         </div>
       </div>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) { setReplayInitial(null); setReplayAuditId(null); }
+        }}
+      >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record payment</DialogTitle>
+            <DialogTitle>{replayInitial ? "Replay blocked payment" : "Record payment"}</DialogTitle>
             <DialogDescription>
-              Cash and Bank Transfer count toward Cash Received. Adjustment/Asset is tracked separately.
+              {replayInitial
+                ? `Re-attempting ${replayInitial.receipt_no} from the audit log. Inspect the prior failure in the drawer, adjust, and save.`
+                : "Cash and Bank Transfer count toward Cash Received. Adjustment/Asset is tracked separately."}
             </DialogDescription>
           </DialogHeader>
           <PaymentForm
-            initial={bookingFilter ? { booking_id: bookingFilter } : undefined}
-            onCancel={() => setCreateOpen(false)}
+            key={replayAuditId ?? "new"}
+            initial={replayInitial ?? (bookingFilter ? { booking_id: bookingFilter } : undefined)}
+            replayBlocked={!!replayInitial}
+            prefillAuditId={replayAuditId}
+            onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); }}
             onSaved={(no) => {
               setCreateOpen(false);
+              setReplayInitial(null);
+              setReplayAuditId(null);
               qc.invalidateQueries({ queryKey: ["payments"] });
               setReceiptNo(no);
             }}
           />
         </DialogContent>
       </Dialog>
+
 
       <PaymentReceipt open={!!receiptNo} onOpenChange={(o) => !o && setReceiptNo(null)} receiptNo={receiptNo} />
     </div>

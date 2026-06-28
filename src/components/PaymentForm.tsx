@@ -63,11 +63,15 @@ interface PaymentFormProps {
   initial?: Partial<PaymentFormValue> & { booking_id?: string };
   onSaved: (receiptNo: string) => void;
   onCancel: () => void;
+  /** When true, treat as a new save even if a receipt_no is preset (e.g. replaying a blocked attempt). */
+  replayBlocked?: boolean;
+  /** Audit-log row id to auto-open in the blocked-audit drawer on mount. */
+  prefillAuditId?: string | null;
 }
 
-export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
+export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId }: PaymentFormProps) {
   const { toast } = useToast();
-  const isEdit = Boolean(initial?.receipt_no);
+  const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
   const [form, setForm] = useState<PaymentFormValue>({
     receipt_no: initial?.receipt_no ?? "",
     booking_id: initial?.booking_id ?? "",
@@ -180,6 +184,33 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
       nextPaymentId().then((id) => setForm((f) => ({ ...f, receipt_no: id })));
     }
   }, [isEdit, form.receipt_no]);
+
+  // When opened via the audit-log back link, fetch the specific audit row and
+  // pop the drawer pre-loaded with that exact attempt.
+  useEffect(() => {
+    if (!prefillAuditId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("audit_logs")
+        .select("id, actor_id, actor_email, created_at, after, entity_id")
+        .eq("id", prefillAuditId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const after = (data.after ?? {}) as Record<string, any>;
+      setViewingAudit({
+        id: data.id,
+        actor_id: data.actor_id,
+        actor_email: data.actor_email,
+        actor_full_name: after.actor_full_name ?? null,
+        failed_condition: after.failed_condition ?? "",
+        receipt_no: data.entity_id ?? after.receipt_no ?? form.receipt_no,
+        created_at: data.created_at,
+      });
+      setAuditDrawerOpen(true);
+    })();
+    return () => { cancelled = true; };
+  }, [prefillAuditId]);
 
   const selectedBooking = useMemo(
     () => bookings.find((b: any) => b.booking_id === form.booking_id),

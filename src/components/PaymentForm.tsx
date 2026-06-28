@@ -121,6 +121,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
   const set = <K extends keyof PaymentFormValue>(k: K, v: PaymentFormValue[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k as string]: "" }));
+    if (blockedAudit) setBlockedAudit(null);
   };
 
   const handleSave = async () => {

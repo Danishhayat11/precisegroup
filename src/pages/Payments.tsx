@@ -258,7 +258,7 @@ export default function Payments() {
         open={createOpen}
         onOpenChange={(o) => {
           setCreateOpen(o);
-          if (!o) { setReplayInitial(null); setReplayAuditId(null); }
+          if (!o) { setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }
         }}
       >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -275,17 +275,19 @@ export default function Payments() {
             initial={replayInitial ?? (bookingFilter ? { booking_id: bookingFilter } : undefined)}
             replayBlocked={!!replayInitial}
             prefillAuditId={replayAuditId}
-            onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); }}
+            onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }}
             onSaved={(no) => {
               setCreateOpen(false);
               setReplayInitial(null);
               setReplayAuditId(null);
+              clearReplayParams();
               qc.invalidateQueries({ queryKey: ["payments"] });
               setReceiptNo(no);
             }}
           />
         </DialogContent>
       </Dialog>
+
 
 
       <PaymentReceipt open={!!receiptNo} onOpenChange={(o) => !o && setReceiptNo(null)} receiptNo={receiptNo} />

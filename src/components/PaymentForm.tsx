@@ -273,6 +273,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
           rawError: raw,
         });
         setBlockedAudit(auditEntry);
+        setBlockedPayload(payload);
 
         toast({
           variant: "destructive",

@@ -100,9 +100,38 @@ export default function Documents() {
     else if (n >= 1) setDocType("legal");
   }, [booking, overdueCount]); // eslint-disable-line
 
+  // Notice history for the selected booking (most-recent first).
+  const { data: noticeHistory = [] } = useQuery({
+    queryKey: ["notice-history", bookingId],
+    enabled: !!bookingId,
+    queryFn: async () =>
+      (await supabase
+        .from("notices")
+        .select("id,ref_no,doc_type,notice_date,channel,status,created_at,serial,year")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })).data ?? [],
+  });
+
+  // Look up the next per-booking serial whenever booking or doc type changes.
+  useEffect(() => {
+    setSavedNoticeId(null);
+    setEditing(false);
+    if (!bookingId || !docType) return;
+    const yr = new Date().getFullYear();
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("next_notice_serial", {
+        _booking_id: bookingId,
+        _year: yr,
+      });
+      if (!cancelled && typeof data === "number") setSerial(data);
+    })();
+    return () => { cancelled = true; };
+  }, [bookingId, docType, noticeHistory.length]);
+
   const todayStr = FMT_DATE(new Date());
   const deadlineStr = docType ? FMT_DATE(addDays(new Date(), DOC_META[docType].deadline)) : "";
-  const ref = booking && docType ? noticeRef(booking.unit_id, docType) : "";
+  const ref = booking && docType ? noticeRef(booking.unit_id, docType, serial) : "";
 
   const ctx = booking && docType
     ? {

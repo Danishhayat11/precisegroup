@@ -19,7 +19,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Eye, Pencil, Receipt, BookOpen, FilePlus2, MessageCircle, Plus, Search, MoreHorizontal,
+  Eye, Pencil, Receipt, BookOpen, FilePlus2, MessageCircle, Plus, Search, MoreHorizontal, Printer,
 } from "lucide-react";
 import { BookingForm } from "@/components/BookingForm";
 import { fetchDocSummaries } from "@/lib/bookingDocuments";
@@ -197,6 +197,9 @@ export default function Bookings() {
                         </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit" onClick={() => setEditing(b)}>
                           <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Print Payment History" onClick={() => navigate(`/payment-history/${b.booking_id}`)}>
+                          <Printer className="h-3.5 w-3.5" />
                         </Button>
                         {wa && (
                           <a href={wa} target="_blank" rel="noopener noreferrer" title="WhatsApp"

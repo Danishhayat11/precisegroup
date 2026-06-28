@@ -20,6 +20,7 @@ import Reports from "@/pages/Reports";
 import Documents from "@/pages/Documents";
 import DocumentCenter from "@/pages/DocumentCenter";
 import DocumentView from "@/pages/DocumentView";
+import PaymentHistoryView from "@/pages/PaymentHistoryView";
 import ImportCenter from "@/pages/ImportCenter";
 import AuditLog from "@/pages/AuditLog";
 import LogicNotes from "@/pages/LogicNotes";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/document-center" element={<DocumentCenter />} />
               <Route path="/documents/:type" element={<DocumentView />} />
+              <Route path="/payment-history/:bookingId" element={<PaymentHistoryView />} />
               <Route path="/import" element={<ImportCenter />} />
               <Route path="/audit" element={<AuditLog />} />
               <Route path="/logic" element={<LogicNotes />} />

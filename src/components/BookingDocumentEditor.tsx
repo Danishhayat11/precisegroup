@@ -425,6 +425,17 @@ export default function BookingDocumentEditor({
         mode="text"
         body={printBody}
       />
+
+      {sentLabel && (
+        <QuickLogSentDialog
+          open={markSentOpen}
+          onOpenChange={setMarkSentOpen}
+          bookingId={booking.booking_id}
+          label={sentLabel}
+          referenceNo={docRef}
+          documentType={type}
+        />
+      )}
     </div>
   );
 }

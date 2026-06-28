@@ -278,7 +278,25 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
           </div>
           <div>
             <Label>CNIC</Label>
-            <Input value={form.cnic} onChange={(e) => set("cnic", e.target.value)} placeholder="XXXXX-XXXXXXX-X" className="font-mono" />
+            <Input
+              value={form.cnic}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 13);
+                let masked = digits;
+                if (digits.length > 5) masked = digits.slice(0, 5) + "-" + digits.slice(5);
+                if (digits.length > 12) masked = digits.slice(0, 5) + "-" + digits.slice(5, 12) + "-" + digits.slice(12);
+                set("cnic", masked);
+              }}
+              onBlur={() => {
+                if (form.cnic && !cnicRegex.test(form.cnic)) {
+                  setErrors((er) => ({ ...er, cnic: "CNIC must be XXXXX-XXXXXXX-X (13 digits)" }));
+                }
+              }}
+              inputMode="numeric"
+              maxLength={15}
+              placeholder="XXXXX-XXXXXXX-X"
+              className={cn("font-mono", errors.cnic && "border-destructive focus-visible:ring-destructive")}
+            />
             <Err k="cnic" />
           </div>
           <div>

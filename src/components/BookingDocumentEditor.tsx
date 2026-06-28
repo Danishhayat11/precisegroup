@@ -368,7 +368,16 @@ export default function BookingDocumentEditor({
       <div className="p-4 bg-muted/30">
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            logDocumentEditDebounced({
+              action: "document.draft.edit",
+              documentType: type,
+              referenceNo: docRef,
+              bookingId: booking.booking_id,
+            });
+          }}
+
           spellCheck={false}
           className="w-full min-h-[640px] rounded-md border bg-card text-foreground font-mono text-[13px] leading-relaxed p-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y"
           style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' }}

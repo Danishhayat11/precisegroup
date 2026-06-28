@@ -609,22 +609,22 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         {form.payment_mode === "Bank Transfer" && (
           <div>
             <Label>Bank Name</Label>
-            <Input value={form.account ?? ""} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
+            <Input value={form.account ?? ""} disabled={locked} onChange={(e) => set("account", e.target.value)} placeholder="e.g. Meezan Bank" />
           </div>
         )}
         <div>
           <Label>Cheque / Reference Number</Label>
-          <Input value={form.cheque_txn_no ?? ""} onChange={(e) => set("cheque_txn_no", e.target.value)} />
+          <Input value={form.cheque_txn_no ?? ""} disabled={locked} onChange={(e) => set("cheque_txn_no", e.target.value)} />
         </div>
         <div>
           <Label>Received By</Label>
-          <Input value={form.posted_by ?? ""} onChange={(e) => set("posted_by", e.target.value)} />
+          <Input value={form.posted_by ?? ""} disabled={locked} onChange={(e) => set("posted_by", e.target.value)} />
         </div>
       </div>
 
       <div>
         <Label>Notes</Label>
-        <Textarea rows={2} value={form.remarks ?? ""} onChange={(e) => set("remarks", e.target.value)} />
+        <Textarea rows={2} value={form.remarks ?? ""} disabled={locked} onChange={(e) => set("remarks", e.target.value)} />
       </div>
 
       <div className="flex justify-end gap-2 pt-2 border-t">

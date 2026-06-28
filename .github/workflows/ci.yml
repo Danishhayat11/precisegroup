@@ -21,6 +21,20 @@ jobs:
         with:
           bun-version: latest
 
+      # Cache Bun's global install cache (the downloaded tarballs) AND the
+      # project's resolved `node_modules`. Keyed on bun.lock so a lockfile
+      # bump invalidates cleanly; falls back to the latest OS-matching
+      # cache on miss so partial reuse still helps PRs that touch deps.
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'bun.lockb', 'package-lock.json') }}
+          restore-keys: |
+            bun-deps-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -37,10 +51,6 @@ jobs:
       # `--max-warnings=0` promotes any warning to a failure too.
       - name: ESLint
         run: bun run lint -- --max-warnings=0
-
-
-
-
 
       # Hard-fail on any regression in the Payments-related integration tests.
       # These are the highest-signal tests for the audit-log <-> Payments flow
@@ -73,11 +83,46 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'bun.lockb', 'package-lock.json') }}
+          restore-keys: |
+            bun-deps-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Resolve the installed Playwright version so the browser cache is
+      # keyed on it precisely. Mismatched browsers vs. library version are
+      # the #1 source of flaky Playwright runs, so we never fall back to
+      # an older cache here — a version bump triggers a fresh download.
+      - name: Resolve Playwright version
+        id: pw
+        run: |
+          version=$(node -p "require('./node_modules/@playwright/test/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          # Strict key — no restore-keys on purpose (see comment above).
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      # On cache hit: only install OS-level deps (apt packages), skip the
+      # browser download. On miss: full install.
       - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            bunx playwright install-deps chromium
+          else
+            bunx playwright install --with-deps chromium
+          fi
 
       # Same typecheck + lint gates as the Vitest job so a type or lint
       # regression fails the E2E lane fast, before the (slower) build +
@@ -88,10 +133,8 @@ jobs:
       - name: ESLint
         run: bun run lint -- --max-warnings=0
 
-
       - name: Build app
         run: bun run build
-
 
       - name: Run Playwright tests
         run: bunx playwright test --reporter=list
@@ -119,6 +162,16 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'bun.lockb', 'package-lock.json') }}
+          restore-keys: |
+            bun-deps-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -187,4 +240,3 @@ jobs:
         with:
           files: coverage/lcov.info
           fail_ci_if_error: false
-

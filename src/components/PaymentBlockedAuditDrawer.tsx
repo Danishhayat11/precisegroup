@@ -9,11 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, Loader2, ShieldAlert } from "lucide-react";
+import { ExternalLink, Loader2, ShieldAlert, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { fmtPKR } from "@/lib/format";
 import type { PaymentBlockedAuditEntry } from "@/lib/audit";
+import { suggestPaymentFix, type FailedCondition, type PaymentFixSuggestion } from "@/lib/paymentErrors";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,8 @@ interface Props {
   audit: PaymentBlockedAuditEntry | null;
   /** The payload the user attempted to save when the block happened. */
   attempted: Record<string, any> | null;
+  /** Apply the suggested fix to the live Payment form and re-run validation. */
+  onApplyFix?: (suggestion: PaymentFixSuggestion) => void;
 }
 
 interface AuditRow {

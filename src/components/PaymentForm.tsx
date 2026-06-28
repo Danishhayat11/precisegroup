@@ -530,7 +530,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     errors[k] ? <p className="text-[11px] text-destructive mt-1">{errors[k]}</p> : null;
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-4">
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label>Payment ID</Label>

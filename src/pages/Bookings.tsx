@@ -19,7 +19,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Eye, Pencil, Receipt, BookOpen, FilePlus2, MessageCircle, Plus, Search, MoreHorizontal,
+  Eye, Pencil, Receipt, BookOpen, FilePlus2, MessageCircle, Plus, Search, MoreHorizontal, Printer,
 } from "lucide-react";
 import { BookingForm } from "@/components/BookingForm";
 import { fetchDocSummaries } from "@/lib/bookingDocuments";

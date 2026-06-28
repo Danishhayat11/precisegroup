@@ -1081,6 +1081,43 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         }}
         audit={viewingAudit ?? blockedAudit}
         attempted={viewingAudit ? null : blockedPayload}
+        onApplyFix={async (suggestion) => {
+          const patch: Partial<PaymentFormValue> = { ...suggestion.patch };
+          if (suggestion.nextReceipt) {
+            patch.receipt_no = await nextPaymentId();
+          }
+          const merged: PaymentFormValue = { ...form, ...patch } as PaymentFormValue;
+          setForm(merged);
+
+          // Clear inline errors for any field the patch touched and unlock the form.
+          setErrors((e) => {
+            const next = { ...e };
+            for (const k of Object.keys(patch)) delete next[k];
+            return next;
+          });
+          setBlockedAudit(null);
+          setBlockedPayload(null);
+          setViewingAudit(null);
+
+          // Re-run zod validation against the merged form so any remaining
+          // problems surface immediately, before the user tries to save.
+          const parsed = schema.safeParse(merged);
+          if (!parsed.success) {
+            const errs: Record<string, string> = {};
+            parsed.error.issues.forEach((i) => { errs[i.path.join(".")] = i.message; });
+            setErrors(errs);
+            toast({
+              variant: "destructive",
+              title: "Fix applied — please review the highlighted fields",
+              description: suggestion.summary,
+            });
+          } else {
+            toast({
+              title: "Fix applied — form revalidated",
+              description: `${suggestion.summary} Ready to save.`,
+            });
+          }
+        }}
       />
     </div>
   );

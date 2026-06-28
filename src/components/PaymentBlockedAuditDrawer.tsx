@@ -9,11 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, Loader2, ShieldAlert } from "lucide-react";
+import { ExternalLink, Loader2, ShieldAlert, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { fmtPKR } from "@/lib/format";
 import type { PaymentBlockedAuditEntry } from "@/lib/audit";
+import { suggestPaymentFix, type FailedCondition, type PaymentFixSuggestion } from "@/lib/paymentErrors";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,8 @@ interface Props {
   audit: PaymentBlockedAuditEntry | null;
   /** The payload the user attempted to save when the block happened. */
   attempted: Record<string, any> | null;
+  /** Apply the suggested fix to the live Payment form and re-run validation. */
+  onApplyFix?: (suggestion: PaymentFixSuggestion) => void;
 }
 
 interface AuditRow {
@@ -63,7 +66,7 @@ function eq(a: any, b: any): boolean {
   return String(a) === String(b);
 }
 
-export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted }: Props) {
+export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted, onApplyFix }: Props) {
   const [loading, setLoading] = useState(false);
   const [auditRow, setAuditRow] = useState<AuditRow | null>(null);
   const [currentDb, setCurrentDb] = useState<Record<string, any> | null>(null);
@@ -234,6 +237,78 @@ export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted
 {JSON.stringify(attemptedPayload ?? {}, null, 2)}
               </pre>
             </section>
+
+            {/* Suggested fix */}
+            {(() => {
+              const suggestion = suggestPaymentFix(
+                (audit.failed_condition as FailedCondition) || "unknown",
+                attemptedPayload,
+                currentDb,
+              );
+              if (!suggestion) {
+                return (
+                  <section className="rounded-md border border-dashed bg-muted/20 p-3 text-xs text-muted-foreground">
+                    No automatic fix is available for this condition — review the
+                    diff above and adjust the form manually.
+                  </section>
+                );
+              }
+              const patchEntries = Object.entries(suggestion.patch);
+              return (
+                <section className="rounded-md border border-primary/40 bg-primary/5 p-3 text-xs">
+                  <div className="flex items-start gap-2">
+                    <Wand2 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                          Suggested fix
+                        </div>
+                        <p className="mt-0.5 text-foreground">{suggestion.summary}</p>
+                      </div>
+                      {(patchEntries.length > 0 || suggestion.nextReceipt) && (
+                        <div className="rounded border bg-background/60 p-2">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                            Changes to apply
+                          </div>
+                          <ul className="space-y-0.5 font-mono text-[11px]">
+                            {suggestion.nextReceipt && (
+                              <li>
+                                <span className="text-muted-foreground">receipt_no</span>{" "}
+                                → <span className="text-primary">next free PAY-…</span>
+                              </li>
+                            )}
+                            {patchEntries.map(([k, v]) => (
+                              <li key={k}>
+                                <span className="text-muted-foreground">{k}</span>{" "}
+                                → <span className="text-primary">{String(v)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={!onApplyFix}
+                        onClick={() => {
+                          if (!onApplyFix) return;
+                          onApplyFix(suggestion);
+                          onOpenChange(false);
+                        }}
+                        title={
+                          onApplyFix
+                            ? "Apply the patch to the form and re-run validation"
+                            : "Open this drawer from the Payment form to apply fixes"
+                        }
+                      >
+                        <Wand2 className="h-3.5 w-3.5 mr-1" />
+                        Use suggested fix
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
 
             <div className="flex items-center justify-between gap-2 pt-2 border-t">
               <Button asChild variant="outline" size="sm">

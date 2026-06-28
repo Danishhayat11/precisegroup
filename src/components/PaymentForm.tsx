@@ -87,20 +87,22 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
 
   // Live totals — used to preview the Cash / Adjustment impact of this entry.
   const { data: totals } = useQuery({
-    queryKey: ["payment-totals-preview"],
+    queryKey: ["payment-totals-preview", form.receipt_no],
     queryFn: async () => {
       const { data } = await supabase
         .from("payments")
-        .select("amount,safe_cash_amount,payment_mode,non_cash_adjustment");
+        .select("receipt_no,amount,safe_cash_amount,payment_mode,non_cash_adjustment");
       const rows = data ?? [];
       const cashTotal = rows.reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
       const adjTotal = rows
         .filter((r: any) => r.payment_mode === "Adjustment/Asset" || r.non_cash_adjustment)
         .reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0);
-      return { cashTotal, adjTotal };
+      const prev = rows.find((r: any) => r.receipt_no === form.receipt_no) ?? null;
+      return { cashTotal, adjTotal, prev };
     },
     staleTime: 5_000,
   });
+
 
   useEffect(() => {
     if (!isEdit && !form.receipt_no) {

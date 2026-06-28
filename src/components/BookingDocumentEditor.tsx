@@ -279,6 +279,11 @@ export default function BookingDocumentEditor({
   const [text, setText] = useState<string>(baseTemplate);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [markSentOpen, setMarkSentOpen] = useState(false);
+  /** Set to true once the user has previewed/printed, so the Mark-as-Sent button
+   *  isn't tempting before the notice actually leaves the office. */
+  const [hasPrinted, setHasPrinted] = useState(false);
+  const sentLabel = SENT_LABEL_FOR_TYPE[type];
 
   // Load draft (or fall back to template) whenever type changes
   useEffect(() => {

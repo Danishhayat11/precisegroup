@@ -83,6 +83,9 @@ export default function DocumentVault({ bookingId }: Props) {
   const [labelCustom, setLabelCustom] = useState("");
   const [docDate, setDocDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
+  const [sentVia, setSentVia] = useState<SentVia | "">("");
+  const [tcsTracking, setTcsTracking] = useState("");
+  const [whatsappTo, setWhatsappTo] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const [search, setSearch] = useState("");

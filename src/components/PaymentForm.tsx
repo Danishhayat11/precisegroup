@@ -22,7 +22,8 @@ import { useQuery } from "@tanstack/react-query";
 import { logPaymentBlocked, type PaymentBlockedAuditEntry } from "@/lib/audit";
 import { mapPaymentError } from "@/lib/paymentErrors";
 import { Link } from "react-router-dom";
-import { ShieldAlert, ExternalLink } from "lucide-react";
+import { ShieldAlert, ExternalLink, FileSearch } from "lucide-react";
+import { PaymentBlockedAuditDrawer } from "@/components/PaymentBlockedAuditDrawer";
 
 export const PAYMENT_TYPES = ["Cash", "Bank Transfer", "Adjustment/Asset"] as const;
 export const PAYMENT_HEADS = ["Down Payment", "Installment", "Possession", "Advance", "Extra Payment"] as const;

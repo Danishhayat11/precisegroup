@@ -396,6 +396,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
             ref={amountRef}
             type="number"
             min={0}
+            disabled={locked}
             value={form.amount || ""}
             onChange={(e) => set("amount", Number(e.target.value || 0))}
             className={cn(errors.amount && "border-destructive ring-2 ring-destructive/40 bg-destructive/5 animate-pulse")}
@@ -404,7 +405,7 @@ export function PaymentForm({ initial, onSaved, onCancel }: PaymentFormProps) {
         </div>
         <div>
           <Label>Payment Head *</Label>
-          <Select value={form.payment_head} onValueChange={(v) => set("payment_head", v as any)}>
+          <Select value={form.payment_head} disabled={locked} onValueChange={(v) => set("payment_head", v as any)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PAYMENT_HEADS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
           </Select>

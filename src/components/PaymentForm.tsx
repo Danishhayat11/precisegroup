@@ -17,6 +17,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { fmtPKR } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { logPaymentBlocked } from "@/lib/audit";
 

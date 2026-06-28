@@ -39,12 +39,25 @@ function noticeRef(unit: string, doc: DocKey, serial = 1) {
   return doc === "cancellation" ? `PRB/MA/${u}/CAN/${s}` : `PRB/MA/${u}/${yr}-${s}`;
 }
 
+const DOC_DB_TYPE: Record<DocKey, string> = {
+  legal: "legal_notice",
+  final: "final_legal_notice",
+  final_cancel: "final_legal_notice_cancellation",
+  cancellation: "cancellation_notice",
+};
+
 export default function Documents() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const printRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [bookingId, setBookingId] = useState("");
   const [docType, setDocType] = useState<DocKey | null>(null);
   const [prevNotice1, setPrevNotice1] = useState("");
   const [prevNotice2, setPrevNotice2] = useState("");
+  const [serial, setSerial] = useState(1);
+  const [savedNoticeId, setSavedNoticeId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["doc-bookings-all"],

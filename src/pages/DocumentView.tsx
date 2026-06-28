@@ -153,6 +153,12 @@ export default function DocumentView() {
             >
               {tcsSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Save to Vault
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       {!booking ? (
         <div className="card-elevated p-12 text-center text-muted-foreground">Select a booking to preview.</div>

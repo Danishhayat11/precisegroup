@@ -297,11 +297,55 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     return { active: true as const, stillFails, reason, failed };
   }, [blockedAudit, blockedPayload, form, totals]);
 
-  // Side-effect: once the live check says the condition is resolved, drop the lock.
+  // Side-effect: once the live check says the condition is resolved, drop the
+  // lock AND record a `payment.save.unblocked` audit row with the exact field
+  // change(s) that resolved the block.
   useEffect(() => {
-    if (liveBlockStatus.active && !liveBlockStatus.stillFails) {
-      setBlockedAudit(null);
-      setBlockedPayload(null);
+    if (!liveBlockStatus.active || liveBlockStatus.stillFails) return;
+
+    const auditSnapshot = blockedAudit;
+    const attempted = blockedPayload ?? {};
+    const TRACKED: Array<keyof PaymentFormValue> = [
+      "payment_mode",
+      "amount",
+      "payment_head",
+      "receipt_no",
+    ];
+    const changed: Record<string, { from: any; to: any }> = {};
+    for (const k of TRACKED) {
+      const a = (attempted as any)[k];
+      const b = (form as any)[k];
+      const same =
+        typeof a === "number" || typeof b === "number"
+          ? Math.abs(Number(a || 0) - Number(b || 0)) < 0.005
+          : String(a ?? "") === String(b ?? "");
+      if (!same) changed[k as string] = { from: a ?? null, to: b ?? null };
+    }
+    const trigger =
+      Object.entries(changed)
+        .map(([k, v]) => `${k}: ${v.from ?? "—"} → ${v.to ?? "—"}`)
+        .join(" · ") || "live re-check passed without field change";
+
+    // Clear lock state first so the UI updates immediately; logging is fire-and-forget.
+    setBlockedAudit(null);
+    setBlockedPayload(null);
+
+    if (auditSnapshot) {
+      void logPaymentUnlock({
+        receiptNo: form.receipt_no,
+        bookingId: form.booking_id,
+        blockedAuditId: auditSnapshot.id,
+        failedCondition: auditSnapshot.failed_condition,
+        unlockTrigger: trigger,
+        changedFields: changed,
+        currentForm: {
+          payment_mode: form.payment_mode,
+          amount: form.amount,
+          payment_head: form.payment_head,
+          receipt_no: form.receipt_no,
+          booking_id: form.booking_id,
+        },
+      });
     }
   }, [liveBlockStatus]);
 

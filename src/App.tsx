@@ -51,6 +51,7 @@ const App = () => (
               <Route path="/adjustments" element={<Adjustments />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/document-center" element={<DocumentCenter />} />
               <Route path="/documents/:type" element={<DocumentView />} />
               <Route path="/import" element={<ImportCenter />} />
               <Route path="/audit" element={<AuditLog />} />

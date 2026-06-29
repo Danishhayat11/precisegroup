@@ -632,11 +632,14 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
           type="button"
           onClick={onRetry}
           data-testid="payment-form-lock-retry"
-          aria-label="Retry latest audit prefill fetch"
+          aria-label="Retry latest audit prefill fetch (keyboard shortcut: R)"
+          aria-keyshortcuts="R"
+          title="Retry (R)"
           className="shrink-0 rounded-md border border-destructive/40 bg-background px-2 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
         >
-          Retry
+          Retry <kbd className="ml-1 rounded border border-destructive/40 px-1 text-[10px]">R</kbd>
         </button>
+
       )}
     </div>
 

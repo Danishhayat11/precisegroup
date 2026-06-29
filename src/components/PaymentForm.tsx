@@ -89,9 +89,17 @@ interface PaymentFormProps {
    * tech actually announces it.
    */
   lockedReason?: string;
+  /**
+   * Optional callback wired to a small "Retry" button rendered alongside
+   * the lock status region, OUTSIDE the inert subtree. The parent uses
+   * it to re-attempt the latest audit prefill fetch. The button is only
+   * shown when `locked` is true and `onRetry` is provided.
+   */
+  onRetry?: () => void;
 }
 
-export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent, lockedReason }: PaymentFormProps) {
+export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent, lockedReason, onRetry }: PaymentFormProps) {
+
 
 
   const { toast } = useToast();

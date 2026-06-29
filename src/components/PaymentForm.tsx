@@ -124,6 +124,40 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     }
   }, [lockedByParent]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keyboard shortcut: while the parent-driven lock is active AND the
+  // parent supplied an `onRetry` callback, pressing "R" (or "r")
+  // anywhere on the page fires the retry without needing to move
+  // focus to the in-form Retry button. We ignore the keypress when:
+  //   - any modifier other than Shift is held (Ctrl/Alt/Meta — those
+  //     are reserved for browser/OS shortcuts),
+  //   - the user is typing into an input/textarea/select or a
+  //     contentEditable element (so "r" in a search field still types
+  //     a letter),
+  //   - the event was already prevented by a higher-priority handler.
+  useEffect(() => {
+    if (!lockedByParent || !onRetry) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key !== "r" && e.key !== "R") return;
+      const t = e.target as HTMLElement | null;
+      if (t) {
+        const tag = t.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if ((t as HTMLElement).isContentEditable) return;
+        const ce = t.getAttribute && t.getAttribute("contenteditable");
+        if (ce === "" || ce === "true" || ce === "plaintext-only") return;
+
+      }
+      e.preventDefault();
+      onRetry();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lockedByParent, onRetry]);
+
+
+
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
 
@@ -601,11 +635,14 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
           type="button"
           onClick={onRetry}
           data-testid="payment-form-lock-retry"
-          aria-label="Retry latest audit prefill fetch"
+          aria-label="Retry latest audit prefill fetch (keyboard shortcut: R)"
+          aria-keyshortcuts="R"
+          title="Retry (R)"
           className="shrink-0 rounded-md border border-destructive/40 bg-background px-2 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
         >
-          Retry
+          Retry <kbd className="ml-1 rounded border border-destructive/40 px-1 text-[10px]">R</kbd>
         </button>
+
       )}
     </div>
 

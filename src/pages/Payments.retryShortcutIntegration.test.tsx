@@ -157,9 +157,10 @@ function findDeferred(auditId: string, callIdx: number) {
   return d;
 }
 
-function pressR(target: EventTarget = window, opts: KeyboardEventInit = {}) {
-  fireEvent.keyDown(target, { key: "R", ...opts });
+function pressR(target: Window | Element = window, opts: KeyboardEventInit = {}) {
+  fireEvent.keyDown(target as Element, { key: "R", ...opts });
 }
+
 
 beforeEach(() => {
   formMounts.length = 0;

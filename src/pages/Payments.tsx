@@ -427,6 +427,12 @@ export default function Payments() {
             lockedReason={
               replayError ? `${replayError.title}: ${replayError.detail}` : undefined
             }
+            onRetry={
+              replayError && openReceiptParam && auditIdParam
+                ? () => { setReplayError(null); setRetryNonce((n) => n + 1); }
+                : undefined
+            }
+
 
             onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }}
             onSaved={(no) => {

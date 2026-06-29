@@ -536,6 +536,8 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
 
   return (
     <TooltipProvider delayDuration={150}>
+    <>
+
     {/*
       Live status region for the parent-driven lock. Rendered OUTSIDE the
       `inert` form subtree so screen readers actually announce why the

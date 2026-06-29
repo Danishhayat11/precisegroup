@@ -609,6 +609,27 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       )}
     </div>
 
+    {/*
+      Separate polite live region for the UNLOCK announcement. Kept
+      out of the lock-status node so:
+        - the lock-status region stays empty when not locked (the
+          previous failure text is therefore visibly/audibly cleared),
+        - SR users hear an explicit confirmation that the form is now
+          usable once retry succeeds.
+      The message auto-clears after ~4s so it does not linger.
+    */}
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-testid="payment-form-unlock-status"
+      className={unlockAnnouncement ? "sr-only" : "sr-only"}
+    >
+      {unlockAnnouncement ?? ""}
+    </div>
+
+
+
     <div
       className="space-y-4"
       role="group"

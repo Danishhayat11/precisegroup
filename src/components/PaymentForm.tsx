@@ -100,10 +100,33 @@ interface PaymentFormProps {
 
 export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent, lockedReason, onRetry }: PaymentFormProps) {
 
-
+  // Transient success announcement: when the parent-driven lock flips
+  // from true → false (retry succeeded, latest prefill arrived), we
+  // briefly render an aria-live message so SR users hear that the form
+  // is now usable. After ~4s we clear it so the live region returns to
+  // empty.
+  const wasLockedByParentRef = useRef(false);
+  const [unlockAnnouncement, setUnlockAnnouncement] = useState<string | null>(null);
+  useEffect(() => {
+    if (wasLockedByParentRef.current && !lockedByParent) {
+      setUnlockAnnouncement(
+        "Payment form unlocked. Latest audit prefill loaded successfully.",
+      );
+      const t = setTimeout(() => setUnlockAnnouncement(null), 4000);
+      wasLockedByParentRef.current = false;
+      return () => clearTimeout(t);
+    }
+    if (lockedByParent) {
+      // Entering or staying locked clears any stale unlock message so
+      // the same announcement fires fresh on the next unlock.
+      if (unlockAnnouncement) setUnlockAnnouncement(null);
+      wasLockedByParentRef.current = true;
+    }
+  }, [lockedByParent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
+
   const [form, setForm] = useState<PaymentFormValue>({
     receipt_no: initial?.receipt_no ?? "",
     booking_id: initial?.booking_id ?? "",

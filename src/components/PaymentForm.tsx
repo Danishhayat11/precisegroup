@@ -124,6 +124,37 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     }
   }, [lockedByParent]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keyboard shortcut: while the parent-driven lock is active AND the
+  // parent supplied an `onRetry` callback, pressing "R" (or "r")
+  // anywhere on the page fires the retry without needing to move
+  // focus to the in-form Retry button. We ignore the keypress when:
+  //   - any modifier other than Shift is held (Ctrl/Alt/Meta — those
+  //     are reserved for browser/OS shortcuts),
+  //   - the user is typing into an input/textarea/select or a
+  //     contentEditable element (so "r" in a search field still types
+  //     a letter),
+  //   - the event was already prevented by a higher-priority handler.
+  useEffect(() => {
+    if (!lockedByParent || !onRetry) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key !== "r" && e.key !== "R") return;
+      const t = e.target as HTMLElement | null;
+      if (t) {
+        const tag = t.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if ((t as HTMLElement).isContentEditable) return;
+      }
+      e.preventDefault();
+      onRetry();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lockedByParent, onRetry]);
+
+
+
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
 

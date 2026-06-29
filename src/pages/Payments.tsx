@@ -423,6 +423,11 @@ export default function Payments() {
             initial={replayInitial ?? (bookingFilter ? { booking_id: bookingFilter } : undefined)}
             replayBlocked={!!replayInitial}
             prefillAuditId={replayAuditId}
+            locked={!!replayError && !replayInitial}
+            lockedReason={
+              replayError ? `${replayError.title}: ${replayError.detail}` : undefined
+            }
+
             onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }}
             onSaved={(no) => {
               setCreateOpen(false);

@@ -145,6 +145,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         const tag = t.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         if ((t as HTMLElement).isContentEditable) return;
+        const ce = t.getAttribute && t.getAttribute("contenteditable");
+        if (ce === "" || ce === "true" || ce === "plaintext-only") return;
+
       }
       e.preventDefault();
       onRetry();

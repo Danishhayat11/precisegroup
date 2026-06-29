@@ -82,9 +82,17 @@ interface PaymentFormProps {
    * provide an escape (Cancel / dismiss / Retry) OUTSIDE this component.
    */
   locked?: boolean;
+  /**
+   * Optional human-readable reason shown in an `aria-live` status region
+   * when `locked` is true. Defaults to a generic latest-audit-fetch
+   * failure message. Rendered OUTSIDE the inert subtree so assistive
+   * tech actually announces it.
+   */
+  lockedReason?: string;
 }
 
-export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent }: PaymentFormProps) {
+export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent, lockedReason }: PaymentFormProps) {
+
 
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;

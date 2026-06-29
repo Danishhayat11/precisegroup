@@ -234,8 +234,12 @@ export default function Payments() {
       {replayError && (
         <div
           role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+          data-testid="replay-error-banner"
           className="mb-4 flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
         >
+
           <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-destructive">{replayError.title}</div>
@@ -419,6 +423,11 @@ export default function Payments() {
             initial={replayInitial ?? (bookingFilter ? { booking_id: bookingFilter } : undefined)}
             replayBlocked={!!replayInitial}
             prefillAuditId={replayAuditId}
+            locked={!!replayError && !replayInitial}
+            lockedReason={
+              replayError ? `${replayError.title}: ${replayError.detail}` : undefined
+            }
+
             onCancel={() => { setCreateOpen(false); setReplayInitial(null); setReplayAuditId(null); clearReplayParams(); }}
             onSaved={(no) => {
               setCreateOpen(false);

@@ -151,6 +151,36 @@ export default function Payments() {
     setParams(next, { replace: true });
   };
 
+  // Page-level keyboard shortcut: while the latest audit prefill fetch
+  // has failed (replayError + deep-link params are present), pressing
+  // "R" anywhere on the page re-attempts the same audit fetch. Mirrors
+  // PaymentForm's in-form shortcut so the user can retry whether the
+  // form is mounted (success) or still absent under the route guard
+  // (failure). Same suppression rules as the in-form handler.
+  useEffect(() => {
+    if (!replayError || !openReceiptParam || !auditIdParam) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key !== "r" && e.key !== "R") return;
+      const t = e.target as HTMLElement | null;
+      if (t) {
+        const tag = t.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if ((t as HTMLElement).isContentEditable) return;
+        const ce = t.getAttribute && t.getAttribute("contenteditable");
+        if (ce === "" || ce === "true" || ce === "plaintext-only") return;
+      }
+      e.preventDefault();
+      setReplayError(null);
+      setRetryNonce((n) => n + 1);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [replayError, openReceiptParam, auditIdParam]);
+
+
+
 
   const { data: rows = [] } = useQuery({
     queryKey: ["payments"],

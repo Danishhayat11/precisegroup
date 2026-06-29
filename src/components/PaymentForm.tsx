@@ -536,6 +536,30 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
 
   return (
     <TooltipProvider delayDuration={150}>
+    {/*
+      Live status region for the parent-driven lock. Rendered OUTSIDE the
+      `inert` form subtree so screen readers actually announce why the
+      form is disabled. `role="status"` + `aria-live="polite"` so the
+      announcement does not interrupt the user, and `aria-atomic` so the
+      full message is re-read whenever it changes.
+    */}
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-testid="payment-form-lock-status"
+      className={cn(
+        "text-sm",
+        lockedByParent
+          ? "mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive"
+          : "sr-only",
+      )}
+    >
+      {lockedByParent
+        ? (lockedReason ??
+           "Payment form is temporarily disabled: we couldn't load the latest audit entry needed to safely prefill this payment. Use Retry above to try again.")
+        : ""}
+    </div>
     <div
       className="space-y-4"
       role="group"
@@ -550,6 +574,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       // continues to work.
       {...(lockedByParent ? ({ inert: "" } as any) : {})}
     >
+
 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

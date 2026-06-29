@@ -100,10 +100,33 @@ interface PaymentFormProps {
 
 export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefillAuditId, locked: lockedByParent, lockedReason, onRetry }: PaymentFormProps) {
 
-
+  // Transient success announcement: when the parent-driven lock flips
+  // from true → false (retry succeeded, latest prefill arrived), we
+  // briefly render an aria-live message so SR users hear that the form
+  // is now usable. After ~4s we clear it so the live region returns to
+  // empty.
+  const wasLockedByParentRef = useRef(false);
+  const [unlockAnnouncement, setUnlockAnnouncement] = useState<string | null>(null);
+  useEffect(() => {
+    if (wasLockedByParentRef.current && !lockedByParent) {
+      setUnlockAnnouncement(
+        "Payment form unlocked. Latest audit prefill loaded successfully.",
+      );
+      const t = setTimeout(() => setUnlockAnnouncement(null), 4000);
+      wasLockedByParentRef.current = false;
+      return () => clearTimeout(t);
+    }
+    if (lockedByParent) {
+      // Entering or staying locked clears any stale unlock message so
+      // the same announcement fires fresh on the next unlock.
+      if (unlockAnnouncement) setUnlockAnnouncement(null);
+      wasLockedByParentRef.current = true;
+    }
+  }, [lockedByParent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { toast } = useToast();
   const isEdit = Boolean(initial?.receipt_no) && !replayBlocked;
+
   const [form, setForm] = useState<PaymentFormValue>({
     receipt_no: initial?.receipt_no ?? "",
     booking_id: initial?.booking_id ?? "",
@@ -585,6 +608,27 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         </button>
       )}
     </div>
+
+    {/*
+      Separate polite live region for the UNLOCK announcement. Kept
+      out of the lock-status node so:
+        - the lock-status region stays empty when not locked (the
+          previous failure text is therefore visibly/audibly cleared),
+        - SR users hear an explicit confirmation that the form is now
+          usable once retry succeeds.
+      The message auto-clears after ~4s so it does not linger.
+    */}
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-testid="payment-form-unlock-status"
+      className={unlockAnnouncement ? "sr-only" : "sr-only"}
+    >
+      {unlockAnnouncement ?? ""}
+    </div>
+
+
 
     <div
       className="space-y-4"

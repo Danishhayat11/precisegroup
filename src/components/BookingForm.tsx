@@ -375,7 +375,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
           </div>
           <div>
             <Label>Frequency</Label>
-            <Select value={form.installment_frequency} onValueChange={(v) => set("installment_frequency", v as any)}>
+            <Select value={form.installment_frequency} onValueChange={(v) => set("installment_frequency", v as BookingFormValue["installment_frequency"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{FREQUENCIES.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
             </Select>

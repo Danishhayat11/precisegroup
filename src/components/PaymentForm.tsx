@@ -344,14 +344,14 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     if (!liveBlockStatus.active || liveBlockStatus.stillFails) return;
 
     const auditSnapshot = blockedAudit;
-    const attempted = blockedPayload ?? {};
+    const attempted = (blockedPayload ?? {}) as Record<string, unknown>;
     const TRACKED: Array<keyof PaymentFormValue> = [
       "payment_mode",
       "amount",
       "payment_head",
       "receipt_no",
     ];
-    const changed: Record<string, { from: any; to: any }> = {};
+    const changed: Record<string, { from: unknown; to: unknown }> = {};
     for (const k of TRACKED) {
       const a = attempted[k];
       const b = form[k];
@@ -471,12 +471,12 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         supabase.from("installment_ledger").select("paid_amount").eq("booking_id", form.booking_id),
         supabase.from("payments").select("safe_cash_amount").eq("booking_id", form.booking_id),
       ]);
-      cashBefore = (snap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
-      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: any) => s + (Number(r.paid_amount) || 0), 0);
-      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      cashBefore = (snap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.safe_cash_amount) || 0), 0);
+      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.paid_amount) || 0), 0);
+      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.safe_cash_amount) || 0), 0);
     }
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       receipt_no: form.receipt_no,
       booking_id: form.booking_id,
       client_name: selectedBooking?.client_name ?? null,
@@ -503,7 +503,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     if (error) {
       setSaving(false);
       const raw = error.message || "";
-      const mapped = mapPaymentError(error as any, { paymentMode: form.payment_mode });
+      const mapped = mapPaymentError(error as unknown as Record<string, unknown>, { paymentMode: form.payment_mode });
 
       if (mapped.isCashInvariant) {
         setErrors((e) => ({ ...e, ...mapped.fieldErrors }));

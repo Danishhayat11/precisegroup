@@ -188,8 +188,9 @@ export default function DocumentVault({ bookingId }: Props) {
       setPendingFile(null);
       qc.invalidateQueries({ queryKey: ["booking-documents", bookingId] });
       qc.invalidateQueries({ queryKey: ["booking-document-summaries"] });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Upload failed", description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ variant: "destructive", title: "Upload failed", description: message });
     } finally {
       setUploading(false);
     }

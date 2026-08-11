@@ -34,8 +34,8 @@ interface AuditRow {
   actor_id: string;
   actor_email: string | null;
   created_at: string;
-  before: Record<string, any> | null;
-  after: Record<string, any> | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
 }
 
 const DIFF_FIELDS: { key: string; label: string; kind?: "money" | "bool" | "text" }[] = [

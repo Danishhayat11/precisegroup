@@ -165,7 +165,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     receipt_no: initial?.receipt_no ?? "",
     booking_id: initial?.booking_id ?? "",
     payment_date: initial?.payment_date ?? format(new Date(), "yyyy-MM-dd"),
-    payment_mode: (initial?.payment_mode as any) ?? "Cash",
+    payment_mode: (initial?.payment_mode as PaymentFormValue["payment_mode"]) ?? "Cash",
     amount: Number(initial?.amount ?? 0),
     payment_head: (initial?.payment_head as any) ?? "Installment",
     account: initial?.account ?? "",

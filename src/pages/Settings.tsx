@@ -27,23 +27,25 @@ export default function Settings() {
   const modes = ["Cash", "Bank Transfer", "Cheque", "Online", "Adjustment", "Other"];
   const accounts = ["Cash in Hand", "Bank - HBL", "Bank - Meezan", "Bank - UBL", "Adjustment Account"];
 
-  const handleTest = async (id: string) => {
+  const handleTest = async (id: string, retries = 0) => {
     setTestResults(prev => ({ ...prev, [id]: { loading: true } }));
     try {
-      const result = await testConnection(id);
+      const result = await testConnection(id, { timeout: 5000, retries });
       setTestResults(prev => ({ ...prev, [id]: { loading: false, success: result.success, message: result.message } }));
       
-      // Clear message after 5 seconds
-      setTimeout(() => {
-        setTestResults(prev => {
-          const next = { ...prev };
-          if (next[id]) {
-            const { message, ...rest } = next[id];
-            next[id] = rest;
-          }
-          return next;
-        });
-      }, 5000);
+      if (result.success) {
+        // Clear message after 5 seconds for success
+        setTimeout(() => {
+          setTestResults(prev => {
+            const next = { ...prev };
+            if (next[id]) {
+              const { message, ...rest } = next[id];
+              next[id] = rest;
+            }
+            return next;
+          });
+        }, 5000);
+      }
     } catch (err) {
       setTestResults(prev => ({ ...prev, [id]: { loading: false, success: false, message: "Test failed unexpectedly" } }));
     }

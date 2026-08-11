@@ -256,13 +256,13 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         .eq("action", "payment.save.blocked")
         .order("created_at", { ascending: false })
         .limit(20);
-      return (data ?? []) as Array<{
-        id: string;
-        actor_id: string;
-        actor_email: string | null;
-        created_at: string;
-        after: Record<string, unknown>;
-      }>;
+      return (data ?? []).map(r => ({
+        id: r.id,
+        actor_id: r.actor_id,
+        actor_email: r.actor_email,
+        created_at: r.created_at,
+        after: (r.after as Record<string, unknown>) ?? {}
+      }));
     },
     staleTime: 5_000,
   });

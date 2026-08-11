@@ -103,7 +103,7 @@ export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted
   }, [open, audit]);
 
   const attemptedPayload =
-    attempted ?? (auditRow?.after as Record<string, any> | null) ?? null;
+    attempted ?? (auditRow?.after as Record<string, unknown> | null) ?? null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

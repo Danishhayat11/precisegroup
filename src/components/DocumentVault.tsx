@@ -229,8 +229,9 @@ export default function DocumentVault({ bookingId }: Props) {
       const url = await signedUrl(d.storage_path, 300);
       setPreviewUrl(url);
       setPreviewDoc(d);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Preview failed", description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ variant: "destructive", title: "Preview failed", description: message });
     }
   }
 

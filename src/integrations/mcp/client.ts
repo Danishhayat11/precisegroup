@@ -25,6 +25,12 @@ export interface MCPServer {
       lastTool?: string;
     };
   };
+  testHistory?: Array<{
+    success: boolean;
+    message: string;
+    timestamp: number;
+    diagnostics?: { timingMs: number; lastTool?: string };
+  }>;
 }
 
 class MCPManager {

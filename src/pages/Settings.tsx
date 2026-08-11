@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { useMCP } from "@/integrations/mcp/useMCP";
-import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock, Settings as SettingsIcon, Save } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock, Settings as SettingsIcon, Save, History } from "lucide-react";
 
 export default function Settings() {
   const { user, roles } = useAuth();
@@ -21,6 +21,7 @@ export default function Settings() {
   const [testResults, setTestResults] = useState<Record<string, { loading: boolean; success?: boolean; message?: string; diagnostics?: { timingMs: number; lastTool?: string } }>>({});
   const [editingServer, setEditingServer] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, any>>({});
+  const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const { data: dealers = [] } = useQuery({ queryKey: ["s-dealers"], queryFn: async () => (await supabase.from("dealers").select("*")).data ?? [] });
   const { data: projects = [] } = useQuery({ queryKey: ["s-projects"], queryFn: async () => (await supabase.from("projects").select("*")).data ?? [] });
@@ -253,6 +254,13 @@ export default function Settings() {
                           <SettingsIcon size={16} />
                         </button>
                         <button 
+                          onClick={() => setShowHistory(showHistory === server.id ? null : server.id)}
+                          className={`p-2 rounded-md transition-colors ${showHistory === server.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                          title="View Test History"
+                        >
+                          <History size={16} />
+                        </button>
+                        <button 
                           onClick={() => removeServer(server.id)}
                           className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md text-muted-foreground transition-colors"
                           title="Disconnect & Remove"
@@ -306,6 +314,40 @@ export default function Settings() {
                                 onChange={e => setEditValues(prev => ({ ...prev, backoffBase: parseInt(e.target.value) }))}
                               />
                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {showHistory === server.id && (
+                      <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-200">
+                        <div className="bg-muted/10 border rounded-lg p-3">
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-3">
+                            <History size={12} /> Connection History
+                          </h4>
+                          <div className="space-y-2">
+                            {(!server.testHistory || server.testHistory.length === 0) ? (
+                              <div className="text-[10px] text-muted-foreground italic py-2 text-center">No tests recorded yet</div>
+                            ) : (
+                              server.testHistory.map((test: any, idx: number) => (
+                                <div key={idx} className="flex flex-col gap-1 text-[10px] border-b border-muted/30 pb-2 last:border-0 last:pb-0">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      {test.success ? 
+                                        <CheckCircle2 size={10} className="text-green-500" /> : 
+                                        <AlertCircle size={10} className="text-destructive" />
+                                      }
+                                      <span className="font-mono text-muted-foreground">{new Date(test.timestamp).toLocaleString()}</span>
+                                    </div>
+                                    {test.diagnostics?.timingMs && (
+                                      <span className="text-[9px] font-bold text-muted-foreground/60">{test.diagnostics.timingMs}ms</span>
+                                    )}
+                                  </div>
+                                  <div className={`pl-4 font-medium truncate ${test.success ? 'text-green-600/80' : 'text-destructive/80'}`}>
+                                    {test.message}
+                                  </div>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       </div>

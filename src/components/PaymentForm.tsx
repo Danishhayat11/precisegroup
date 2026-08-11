@@ -405,7 +405,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     <SharedLockedTip
       locked={locked}
       failedCondition={blockedAudit?.failed_condition}
-      liveBlockStatus={liveBlockStatus}
+      liveBlockStatus={liveBlockStatus as any}
       field={field}
       note={note}
     >

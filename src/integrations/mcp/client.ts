@@ -90,24 +90,45 @@ class MCPManager {
     localStorage.setItem('mcp_servers', JSON.stringify(this.servers.map(({ status, ...s }) => s)));
   }
 
-  async testConnection(id: string): Promise<{ success: boolean; message: string }> {
-    const client = this.clients.get(id);
-    if (!client) {
-      return { success: false, message: "Client not connected" };
+  async testConnection(id: string, options?: { timeout?: number; retries?: number }): Promise<{ success: boolean; message: string }> {
+    const { timeout = 5000, retries = 0 } = options || {};
+    let attempts = 0;
+    const maxAttempts = retries + 1;
+
+    while (attempts < maxAttempts) {
+      const client = this.clients.get(id);
+      if (!client) {
+        return { success: false, message: "Client not connected" };
+      }
+
+      try {
+        // Create a promise that rejects after timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Connection test timed out")), timeout);
+        });
+
+        // Race the tool listing against the timeout
+        await Promise.race([client.listTools(), timeoutPromise]);
+        
+        const result = { success: true, message: "Successfully verified connection and capabilities." };
+        this.updateLastTest(id, result);
+        return result;
+      } catch (error: any) {
+        attempts++;
+        console.error(`Connection test attempt ${attempts}/${maxAttempts} failed for ${id}:`, error);
+        
+        if (attempts >= maxAttempts) {
+          const result = { success: false, message: error.message || "Failed to communicate with MCP server." };
+          this.updateLastTest(id, result);
+          return result;
+        }
+        
+        // Wait briefly before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 500));
+      }
     }
 
-    try {
-      // Basic ping or capability check
-      await client.listTools();
-      const result = { success: true, message: "Successfully verified connection and capabilities." };
-      this.updateLastTest(id, result);
-      return result;
-    } catch (error: any) {
-      console.error(`Connection test failed for ${id}:`, error);
-      const result = { success: false, message: error.message || "Failed to communicate with MCP server." };
-      this.updateLastTest(id, result);
-      return result;
-    }
+    return { success: false, message: "Maximum retry attempts reached." };
   }
 
   private updateLastTest(id: string, result: { success: boolean; message: string }) {

@@ -6,7 +6,7 @@ interface MCPContextType {
   addServer: (name: string, url: string) => Promise<void>;
   removeServer: (id: string) => Promise<void>;
   reconnect: (id: string) => Promise<void>;
-  testConnection: (id: string) => Promise<{ success: boolean; message: string }>;
+  testConnection: (id: string, options?: { timeout?: number; retries?: number }) => Promise<{ success: boolean; message: string }>;
 }
 
 const MCPContext = createContext<MCPContextType | undefined>(undefined);
@@ -24,7 +24,7 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
       addServer: (name, url) => mcpManager.addServer(name, url),
       removeServer: (id) => mcpManager.removeServer(id),
       reconnect: (id) => mcpManager.connect(id),
-      testConnection: (id) => mcpManager.testConnection(id)
+      testConnection: (id, options) => mcpManager.testConnection(id, options)
     }}>
       {children}
     </MCPContext.Provider>

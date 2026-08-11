@@ -21,7 +21,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   audit: PaymentBlockedAuditEntry | null;
   /** The payload the user attempted to save when the block happened. */
-  attempted: Record<string, any> | null;
+  attempted: Record<string, unknown> | null;
   /** Apply the suggested fix to the live Payment form and re-run validation. */
   onApplyFix?: (suggestion: PaymentFixSuggestion) => void;
 }

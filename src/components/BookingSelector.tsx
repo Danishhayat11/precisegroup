@@ -58,7 +58,7 @@ function toSummary(b: any): BookingSummary {
   };
 }
 
-const RISK_STYLES: Record<RiskTone, { tone: string; label: string; icon: any }> = {
+const RISK_STYLES: Record<RiskTone, { tone: string; label: string; icon: React.ComponentType<{ className?: string }> }> = {
   LOW:    { tone: "bg-emerald-100 text-emerald-800 border-emerald-300",  label: "Low risk",    icon: ShieldAlert },
   MEDIUM: { tone: "bg-amber-100 text-amber-900 border-amber-300",        label: "Medium risk", icon: ShieldAlert },
   HIGH:   { tone: "bg-destructive/15 text-destructive border-destructive/40", label: "High risk", icon: AlertTriangle },

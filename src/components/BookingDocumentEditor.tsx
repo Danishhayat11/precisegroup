@@ -74,7 +74,7 @@ Subject: Notice of Default — Unit ${unit}, ${project}
 
 Dear ${client},
 
-We refer to your booking for Unit ${unit} in ${project} dated ${fmtDate(b.booking_date)} against a total sold value of ${sold}.
+We refer to your booking for Unit ${unit} in ${project} dated ${fmtDate(String(b.booking_date || "")) || "—"} against a total sold value of ${sold}.
 
 Our records indicate that ${overdueCount} installment(s) amounting to ${overdueAmt} remain overdue and unpaid as of ${today}. Despite previous reminders, the outstanding amount has not been cleared.
 
@@ -430,7 +430,7 @@ export default function BookingDocumentEditor({
         <QuickLogSentDialog
           open={markSentOpen}
           onOpenChange={setMarkSentOpen}
-          bookingId={booking.booking_id}
+          bookingId={String(booking.booking_id)}
           label={sentLabel}
           referenceNo={docRef}
           documentType={type}

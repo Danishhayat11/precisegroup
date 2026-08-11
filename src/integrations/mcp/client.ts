@@ -155,6 +155,7 @@ class MCPManager {
         console.error(`Connection test attempt ${attempts}/${totalMaxAttempts} failed for ${id}:`, error);
         
         if (attempts >= totalMaxAttempts) {
+          this.updateRetryInfo(id, undefined);
           const result = { 
             success: false, 
             message: error.message || "Failed to communicate with MCP server.",
@@ -163,8 +164,14 @@ class MCPManager {
           this.updateLastTest(id, result);
           return result;
         }
-        
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts - 1) * backoffBase));
+
+        const delay = Math.pow(2, attempts - 1) * backoffBase;
+        this.updateRetryInfo(id, { 
+          attempt: attempts, 
+          total: totalMaxAttempts, 
+          nextRetryAt: Date.now() + delay 
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 

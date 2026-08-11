@@ -185,10 +185,20 @@ class MCPManager {
   }
 
   private updateLastTest(id: string, result: { success: boolean; message: string; diagnostics?: { timingMs: number; lastTool?: string } }) {
-    this.servers = this.servers.map(s => s.id === id ? { 
-      ...s, 
-      lastTest: { timestamp: Date.now(), ...result } 
-    } : s);
+    const timestamp = Date.now();
+    this.servers = this.servers.map(s => {
+      if (s.id !== id) return s;
+      const history = [
+        { ...result, timestamp },
+        ...(s.testHistory || [])
+      ].slice(0, 10); // Keep last 10 tests
+      
+      return { 
+        ...s, 
+        lastTest: { ...result, timestamp },
+        testHistory: history
+      };
+    });
     this.save();
     this.onUpdate([...this.servers]);
   }

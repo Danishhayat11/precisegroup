@@ -248,10 +248,19 @@ export default function Settings() {
                       </div>
                     </div>
                     {testResults[server.id]?.message && (
-                      <div className={`px-14 pb-3 text-[11px] animate-in fade-in slide-in-from-top-1 ${
+                      <div className={`px-14 pb-3 text-[11px] animate-in fade-in slide-in-from-top-1 flex items-center justify-between gap-4 ${
                         testResults[server.id]?.success ? 'text-green-600' : 'text-destructive'
                       }`}>
-                        {testResults[server.id]?.message}
+                        <span className="flex-1">{testResults[server.id]?.message}</span>
+                        {!testResults[server.id]?.success && !testResults[server.id]?.loading && (
+                          <button
+                            onClick={() => handleTest(server.id, 2)}
+                            className="text-[10px] font-bold uppercase tracking-wider bg-destructive/10 px-2 py-0.5 rounded hover:bg-destructive/20 transition-colors flex items-center gap-1"
+                          >
+                            <RefreshCw size={10} />
+                            Retry (3x)
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

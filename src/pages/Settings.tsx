@@ -220,7 +220,11 @@ export default function Settings() {
                         <button 
                           onClick={() => handleTest(server.id)}
                           disabled={server.status !== 'connected' || testResults[server.id]?.loading}
-                          className="p-2 hover:bg-muted rounded-md text-muted-foreground transition-colors disabled:opacity-30"
+                          className={`p-2 rounded-md transition-colors disabled:opacity-30 ${
+                            server.lastTest?.success 
+                              ? 'text-green-500 hover:bg-green-500/10' 
+                              : 'text-muted-foreground hover:bg-muted'
+                          }`}
                           title="Test Connection"
                         >
                           {testResults[server.id]?.loading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}

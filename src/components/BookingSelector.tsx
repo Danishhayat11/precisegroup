@@ -40,21 +40,21 @@ function deriveRisk(overdueCount: number, stored?: string | null): RiskTone {
   return "LOW";
 }
 
-function toSummary(b: Record<string, unknown>): BookingSummary {
+function toSummary(b: any): BookingSummary {
   const overdue = Number(b.current_overdue_count ?? 0);
   return {
-    booking_id: String(b.booking_id ?? ""),
-    client_name: String(b.client_name ?? ""),
-    unit_id: String(b.unit_id ?? ""),
-    floor: (b.floor as string) ?? null,
-    unit_type: (b.unit_type as string) ?? null,
+    booking_id: b.booking_id,
+    client_name: b.client_name ?? "",
+    unit_id: b.unit_id ?? "",
+    floor: b.floor ?? null,
+    unit_type: b.unit_type ?? null,
     total_contract_value: Number(b.total_contract_value ?? 0),
     cash_received: Number(b.cash_received ?? 0),
     remaining_balance: Number(b.remaining_balance ?? 0),
     current_overdue_count: overdue,
     total_overdue_amount: Number(b.total_overdue_amount ?? 0),
-    risk_level: deriveRisk(overdue, b.risk_level as string),
-    raw: b,
+    risk_level: deriveRisk(overdue, b.risk_level),
+    raw: b as Record<string, unknown>,
   };
 }
 

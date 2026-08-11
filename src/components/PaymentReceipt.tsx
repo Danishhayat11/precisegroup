@@ -23,13 +23,13 @@ export function PaymentReceipt({ open, onOpenChange, receiptNo }: Props) {
         .select("amount,safe_cash_amount,non_cash_adjustment,payment_date,receipt_no")
         .eq("booking_id", pay.booking_id!)
         .order("payment_date", { ascending: true });
-      const upToHere = (history ?? []).filter((p: Record<string, unknown>) => {
+      const upToHere = (history ?? []).filter((p: any) => {
         if (p.payment_date < pay.payment_date) return true;
         if (p.payment_date === pay.payment_date && p.receipt_no <= pay.receipt_no) return true;
         return false;
       });
-      const cashToDate = upToHere.reduce((s, p: Record<string, unknown>) => s + Number(p.safe_cash_amount || 0), 0);
-      const adjToDate = upToHere.reduce((s, p: Record<string, unknown>) => s + (p.non_cash_adjustment ? Number(p.amount || 0) : 0), 0);
+      const cashToDate = upToHere.reduce((s, p: any) => s + Number(p.safe_cash_amount || 0), 0);
+      const adjToDate = upToHere.reduce((s, p: any) => s + (p.non_cash_adjustment ? Number(p.amount || 0) : 0), 0);
       return { pay, booking, cashToDate, adjToDate };
     },
   });
@@ -119,7 +119,7 @@ export function PaymentReceipt({ open, onOpenChange, receiptNo }: Props) {
   );
 }
 
-function Row({ label, value, strong }: { label: string; value: React.ReactNode; strong?: boolean }) {
+function Row({ label, value, strong }: { label: string; value: any; strong?: boolean }) {
   return (
     <tr>
       <td style={{ padding: "1.5mm 3mm", width: "55mm", color: "#555" }}>{label}</td>

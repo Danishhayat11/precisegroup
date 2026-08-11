@@ -113,7 +113,7 @@ class MCPManager {
         const result = { success: true, message: "Successfully verified connection and capabilities." };
         this.updateLastTest(id, result);
         return result;
-      } catch (error: unknown) {
+      } catch (error: any) {
         attempts++;
         console.error(`Connection test attempt ${attempts}/${maxAttempts} failed for ${id}:`, error);
         

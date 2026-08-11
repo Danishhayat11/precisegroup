@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { useMCP } from "@/integrations/mcp/useMCP";
-import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock, Settings as SettingsIcon, Save, History } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock, Settings as SettingsIcon, Save, History, ShieldAlert } from "lucide-react";
 
 export default function Settings() {
   const { user, roles } = useAuth();
@@ -221,18 +221,20 @@ export default function Settings() {
                         </div>
                       </div>
                       
+                      <CircuitBreakerStatus server={server} />
                       <RetryCountdown server={server} />
 
                       <div className="flex items-center gap-1">
                         <button 
                           onClick={() => handleTest(server.id)}
-                          disabled={server.status !== 'connected' || testResults[server.id]?.loading}
+                          disabled={server.status !== 'connected' || testResults[server.id]?.loading || server.circuitBreaker?.isOpen}
                           className={`p-2 rounded-md transition-colors disabled:opacity-30 ${
+                            server.circuitBreaker?.isOpen ? 'text-destructive bg-destructive/5 cursor-not-allowed' :
                             server.lastTest?.success 
                               ? 'text-green-500 hover:bg-green-500/10' 
                               : 'text-muted-foreground hover:bg-muted'
                           }`}
-                          title="Test Connection"
+                          title={server.circuitBreaker?.isOpen ? "Circuit Breaker Active (Too many failures)" : "Test Connection"}
                         >
                           {testResults[server.id]?.loading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                         </button>
@@ -434,6 +436,56 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
     </div>
   );
 }
+
+const CircuitBreakerStatus = ({ server }: { server: any }) => {
+  const { updateSettings } = useMCP();
+  const [cooldownLeft, setCooldownLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!server.circuitBreaker?.isOpen || !server.circuitBreaker?.openedAt) {
+      setCooldownLeft(null);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - server.circuitBreaker.openedAt;
+      const remaining = Math.max(0, server.circuitBreaker.cooldownMs - elapsed);
+      setCooldownLeft(Math.ceil(remaining / 1000));
+      
+      if (remaining <= 0) {
+        // Reset circuit breaker state via a status update or direct settings update
+        // Here we just let it expire in the UI, real reset happens on next attempt or a dedicated manager tick
+        // But for this implementation, we'll manually reset it when it hits 0
+        const mcp = (window as any).mcpManager;
+        if (mcp) {
+          mcp.servers = mcp.servers.map((s: any) => 
+            s.id === server.id ? { ...s, circuitBreaker: { ...s.circuitBreaker, isOpen: false, failureCount: 0 } } : s
+          );
+          mcp.onUpdate([...mcp.servers]);
+        }
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [server.circuitBreaker?.isOpen, server.circuitBreaker?.openedAt, server.id]);
+
+  if (!server.circuitBreaker?.isOpen) return null;
+
+  return (
+    <div className="mx-4 mb-2 py-1.5 bg-destructive/5 border border-destructive/20 rounded-md flex items-center justify-between px-3">
+      <div className="flex items-center gap-2 text-[10px] font-bold text-destructive">
+        <ShieldAlert size={10} />
+        CIRCUIT BREAKER ACTIVE
+      </div>
+      {cooldownLeft !== null && (
+        <div className="text-[10px] font-mono font-bold text-destructive">
+          COOLDOWN: {cooldownLeft}S
+        </div>
+      )}
+    </div>
+  );
+};
 
 const RetryCountdown = ({ server }: { server: any }) => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);

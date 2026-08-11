@@ -36,7 +36,7 @@ const DOC_TYPES: DocType[] = [
   "Payment Plan",
 ];
 
-function buildTemplate(type: DocType, b: Record<string, any>, payments: any[] = [], ledger: any[] = []): string {
+function buildTemplate(type: DocType, b: Record<string, unknown>, payments: Record<string, unknown>[] = [], ledger: Record<string, unknown>[] = []): string {
   const today = fmtDate(new Date().toISOString());
   const client = (b.client_name ?? "").toString();
   const unit = b.unit_id ?? "";
@@ -229,8 +229,8 @@ Authorised Signatory                 Received By`;
       const lines = ledger
         .slice(0, 30)
         .map(
-          (l: any) =>
-            `  ${String(l.term_no ?? "").padStart(3, " ")}.  ${fmtDate(l.due_date).padEnd(12)}  ${(l.particulars ?? "").padEnd(28)}  ${fmtPKR(l.due_amount)}`
+          (l) =>
+            `  ${String(l.term_no ?? "").padStart(3, " ")}.  ${fmtDate(l.due_date as string).padEnd(12)}  ${(l.particulars as string ?? "").padEnd(28)}  ${fmtPKR(l.due_amount as number)}`
         )
         .join("\n");
       return `PRECISE REALTORS & BUILDERS (PVT.) LTD.
@@ -273,7 +273,7 @@ function storageKey(bookingId: string, type: DocType) {
 
 export default function BookingDocumentEditor({
   booking, payments, ledger,
-}: { booking: Record<string, any>; payments: any[]; ledger: any[] }) {
+}: { booking: Record<string, unknown>; payments: Record<string, unknown>[]; ledger: Record<string, unknown>[] }) {
   const [type, setType] = useState<DocType>("Allotment Letter");
   const baseTemplate = useMemo(() => buildTemplate(type, booking, payments, ledger), [type, booking, payments, ledger]);
   const [text, setText] = useState<string>(baseTemplate);

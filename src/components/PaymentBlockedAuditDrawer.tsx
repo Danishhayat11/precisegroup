@@ -69,7 +69,7 @@ function eq(a: unknown, b: unknown): boolean {
 export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted, onApplyFix }: Props) {
   const [loading, setLoading] = useState(false);
   const [auditRow, setAuditRow] = useState<AuditRow | null>(null);
-  const [currentDb, setCurrentDb] = useState<Record<string, any> | null>(null);
+  const [currentDb, setCurrentDb] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!open || !audit) return;

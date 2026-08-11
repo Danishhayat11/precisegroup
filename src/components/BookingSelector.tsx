@@ -40,7 +40,7 @@ function deriveRisk(overdueCount: number, stored?: string | null): RiskTone {
   return "LOW";
 }
 
-function toSummary(b: any): BookingSummary {
+function toSummary(b: Record<string, any>): BookingSummary {
   const overdue = Number(b.current_overdue_count ?? 0);
   return {
     booking_id: b.booking_id,

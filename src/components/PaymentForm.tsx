@@ -261,7 +261,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         actor_id: string;
         actor_email: string | null;
         created_at: string;
-        after: any;
+        after: Record<string, unknown>;
       }>;
     },
     staleTime: 5_000,

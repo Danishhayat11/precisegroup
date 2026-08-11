@@ -27,6 +27,7 @@ export type Database = {
           created_at: string
           loss_gain_type: string | null
           note: string | null
+          owner_id: string | null
           realized_value: number | null
           risk_check: string | null
           unit_id: string | null
@@ -44,6 +45,7 @@ export type Database = {
           created_at?: string
           loss_gain_type?: string | null
           note?: string | null
+          owner_id?: string | null
           realized_value?: number | null
           risk_check?: string | null
           unit_id?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           created_at?: string
           loss_gain_type?: string | null
           note?: string | null
+          owner_id?: string | null
           realized_value?: number | null
           risk_check?: string | null
           unit_id?: string | null
@@ -141,6 +144,7 @@ export type Database = {
           label_custom: string | null
           mime_type: string | null
           notes: string | null
+          owner_id: string | null
           sent_via: string | null
           size_bytes: number | null
           source: string
@@ -161,6 +165,7 @@ export type Database = {
           label_custom?: string | null
           mime_type?: string | null
           notes?: string | null
+          owner_id?: string | null
           sent_via?: string | null
           size_bytes?: number | null
           source?: string
@@ -181,6 +186,7 @@ export type Database = {
           label_custom?: string | null
           mime_type?: string | null
           notes?: string | null
+          owner_id?: string | null
           sent_via?: string | null
           size_bytes?: number | null
           source?: string
@@ -231,6 +237,7 @@ export type Database = {
           no_of_installments: number | null
           notes: string | null
           oldest_overdue_date: string | null
+          owner_id: string | null
           possession_amount: number | null
           possession_due_date: string | null
           price_loss: number | null
@@ -279,6 +286,7 @@ export type Database = {
           no_of_installments?: number | null
           notes?: string | null
           oldest_overdue_date?: string | null
+          owner_id?: string | null
           possession_amount?: number | null
           possession_due_date?: string | null
           price_loss?: number | null
@@ -327,6 +335,7 @@ export type Database = {
           no_of_installments?: number | null
           notes?: string | null
           oldest_overdue_date?: string | null
+          owner_id?: string | null
           possession_amount?: number | null
           possession_due_date?: string | null
           price_loss?: number | null
@@ -378,6 +387,7 @@ export type Database = {
           created_at: string
           mobile: string | null
           name: string
+          owner_id: string | null
           so_wo: string | null
           updated_at: string
         }
@@ -388,6 +398,7 @@ export type Database = {
           created_at?: string
           mobile?: string | null
           name: string
+          owner_id?: string | null
           so_wo?: string | null
           updated_at?: string
         }
@@ -398,6 +409,7 @@ export type Database = {
           created_at?: string
           mobile?: string | null
           name?: string
+          owner_id?: string | null
           so_wo?: string | null
           updated_at?: string
         }
@@ -407,14 +419,17 @@ export type Database = {
         Row: {
           created_at: string
           name: string
+          owner_id: string | null
         }
         Insert: {
           created_at?: string
           name: string
+          owner_id?: string | null
         }
         Update: {
           created_at?: string
           name?: string
+          owner_id?: string | null
         }
         Relationships: []
       }
@@ -429,6 +444,7 @@ export type Database = {
           due_date: string | null
           ledger_id: string
           next_action: string | null
+          owner_id: string | null
           paid_amount: number | null
           paid_date: string | null
           particulars: string | null
@@ -449,6 +465,7 @@ export type Database = {
           due_date?: string | null
           ledger_id: string
           next_action?: string | null
+          owner_id?: string | null
           paid_amount?: number | null
           paid_date?: string | null
           particulars?: string | null
@@ -469,6 +486,7 @@ export type Database = {
           due_date?: string | null
           ledger_id?: string
           next_action?: string | null
+          owner_id?: string | null
           paid_amount?: number | null
           paid_date?: string | null
           particulars?: string | null
@@ -503,6 +521,7 @@ export type Database = {
           notice_date: string
           overdue_amount: number | null
           overdue_count: number | null
+          owner_id: string | null
           previous_notice_2_date: string | null
           previous_notice_date: string | null
           ref_no: string
@@ -525,6 +544,7 @@ export type Database = {
           notice_date?: string
           overdue_amount?: number | null
           overdue_count?: number | null
+          owner_id?: string | null
           previous_notice_2_date?: string | null
           previous_notice_date?: string | null
           ref_no: string
@@ -547,6 +567,7 @@ export type Database = {
           notice_date?: string
           overdue_amount?: number | null
           overdue_count?: number | null
+          owner_id?: string | null
           previous_notice_2_date?: string | null
           previous_notice_date?: string | null
           ref_no?: string
@@ -578,6 +599,7 @@ export type Database = {
           created_at: string
           memo: string | null
           non_cash_adjustment: boolean | null
+          owner_id: string | null
           payment_date: string | null
           payment_head: string | null
           payment_mode: string | null
@@ -602,6 +624,7 @@ export type Database = {
           created_at?: string
           memo?: string | null
           non_cash_adjustment?: boolean | null
+          owner_id?: string | null
           payment_date?: string | null
           payment_head?: string | null
           payment_mode?: string | null
@@ -626,6 +649,7 @@ export type Database = {
           created_at?: string
           memo?: string | null
           non_cash_adjustment?: boolean | null
+          owner_id?: string | null
           payment_date?: string | null
           payment_head?: string | null
           payment_mode?: string | null
@@ -679,6 +703,7 @@ export type Database = {
           expected_completion_date: string | null
           location: string | null
           notes: string | null
+          owner_id: string | null
           project_code: string
           project_name: string
           start_date: string | null
@@ -690,6 +715,7 @@ export type Database = {
           expected_completion_date?: string | null
           location?: string | null
           notes?: string | null
+          owner_id?: string | null
           project_code: string
           project_name: string
           start_date?: string | null
@@ -701,6 +727,7 @@ export type Database = {
           expected_completion_date?: string | null
           location?: string | null
           notes?: string | null
+          owner_id?: string | null
           project_code?: string
           project_name?: string
           start_date?: string | null
@@ -717,6 +744,7 @@ export type Database = {
           floor: string | null
           linked_booking_id: string | null
           notes: string | null
+          owner_id: string | null
           project_code: string
           project_name: string | null
           size_sqft: number | null
@@ -734,6 +762,7 @@ export type Database = {
           floor?: string | null
           linked_booking_id?: string | null
           notes?: string | null
+          owner_id?: string | null
           project_code: string
           project_name?: string | null
           size_sqft?: number | null
@@ -751,6 +780,7 @@ export type Database = {
           floor?: string | null
           linked_booking_id?: string | null
           notes?: string | null
+          owner_id?: string | null
           project_code?: string
           project_name?: string | null
           size_sqft?: number | null

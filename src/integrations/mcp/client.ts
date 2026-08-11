@@ -61,8 +61,7 @@ class MCPManager {
         version: "1.0.0",
       }, {
         capabilities: {
-          roots: { listChanged: true },
-          sampling: {}
+          roots: { listChanged: true }
         }
       });
 

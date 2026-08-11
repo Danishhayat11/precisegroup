@@ -11,6 +11,11 @@ export interface MCPServer {
     maxRetries?: number;
     backoffBase?: number;
   };
+  retryInfo?: {
+    attempt: number;
+    total: number;
+    nextRetryAt?: number;
+  };
   lastTest?: {
     timestamp: number;
     success: boolean;
@@ -95,6 +100,11 @@ class MCPManager {
     this.onUpdate([...this.servers]);
   }
 
+  private updateRetryInfo(id: string, retryInfo: MCPServer['retryInfo']) {
+    this.servers = this.servers.map(s => s.id === id ? { ...s, retryInfo } : s);
+    this.onUpdate([...this.servers]);
+  }
+
   updateSettings(id: string, settings: MCPServer['settings']) {
     this.servers = this.servers.map(s => s.id === id ? { ...s, settings } : s);
     this.save();
@@ -136,6 +146,7 @@ class MCPManager {
           diagnostics: { timingMs, lastTool }
         };
         this.updateLastTest(id, result);
+        this.updateRetryInfo(id, undefined);
         return result;
       } catch (error: any) {
         attempts++;

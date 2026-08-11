@@ -57,7 +57,7 @@ function fmt(v: any, kind?: "money" | "bool" | "text"): string {
   return String(v);
 }
 
-function eq(a: any, b: any): boolean {
+function eq(a: unknown, b: unknown): boolean {
   if (a === null || a === undefined) a = "";
   if (b === null || b === undefined) b = "";
   if (typeof a === "number" || typeof b === "number") {

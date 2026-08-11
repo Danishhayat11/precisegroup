@@ -300,7 +300,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       setAuditDrawerOpen(true);
     })();
     return () => { cancelled = true; };
-  }, [prefillAuditId]);
+  }, [blockedAudit, blockedPayload, form, prefillAuditId]);
 
   const selectedBooking = useMemo(
     () => bookings.find((b) => b.booking_id === form.booking_id),

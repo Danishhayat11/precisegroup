@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -392,3 +392,38 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
     </div>
   );
 }
+
+const RetryCountdown = ({ server }: { server: any }) => {
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!server.retryInfo?.nextRetryAt) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, server.retryInfo.nextRetryAt - Date.now());
+      setTimeLeft(Math.ceil(remaining / 1000));
+      if (remaining <= 0) clearInterval(interval);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [server.retryInfo?.nextRetryAt]);
+
+  if (!server.retryInfo || !server.retryInfo.nextRetryAt) return null;
+
+  return (
+    <div className="mx-4 mb-2 py-1.5 bg-primary/5 border border-primary/10 rounded-md flex items-center justify-between px-3 animate-pulse">
+      <div className="flex items-center gap-2 text-[10px] font-bold text-primary">
+        <RefreshCw size={10} className="animate-spin" />
+        RETRYING {server.retryInfo.attempt}/{server.retryInfo.total}
+      </div>
+      {timeLeft !== null && (
+        <div className="text-[10px] font-mono font-bold text-primary">
+          NEXT ATTEMPT IN {timeLeft}S...
+        </div>
+      )}
+    </div>
+  );
+};

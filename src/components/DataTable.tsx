@@ -11,7 +11,7 @@ export interface Column<T> {
   sortValue?: (row: T) => string | number;
 }
 
-export function DataTable<T extends { [k: string]: any }>({
+export function DataTable<T extends Record<string, unknown>>({
   rows, columns, searchKeys, empty, rowKey, rowHref,
 }: {
   rows: T[];

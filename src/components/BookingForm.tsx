@@ -251,7 +251,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
           </div>
           <div>
             <Label>Floor *</Label>
-            <Select value={form.floor} onValueChange={(v) => set("floor", v as any)}>
+            <Select value={form.floor} onValueChange={(v) => set("floor", v as BookingFormValue["floor"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{FLOORS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
             </Select>

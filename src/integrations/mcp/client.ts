@@ -6,6 +6,11 @@ export interface MCPServer {
   name: string;
   url: string;
   status: 'connected' | 'disconnected' | 'connecting' | 'error';
+  settings?: {
+    timeout?: number;
+    maxRetries?: number;
+    backoffBase?: number;
+  };
   lastTest?: {
     timestamp: number;
     success: boolean;
@@ -38,9 +43,9 @@ class MCPManager {
     this.onUpdate([...this.servers]);
   }
 
-  async addServer(name: string, url: string) {
+  async addServer(name: string, url: string, settings?: MCPServer['settings']) {
     const id = crypto.randomUUID();
-    const newServer: MCPServer = { id, name, url, status: 'disconnected' };
+    const newServer: MCPServer = { id, name, url, status: 'disconnected', settings };
     this.servers.push(newServer);
     this.save();
     await this.connect(id);
@@ -90,16 +95,26 @@ class MCPManager {
     this.onUpdate([...this.servers]);
   }
 
+  updateSettings(id: string, settings: MCPServer['settings']) {
+    this.servers = this.servers.map(s => s.id === id ? { ...s, settings } : s);
+    this.save();
+    this.onUpdate([...this.servers]);
+  }
+
   private save() {
     localStorage.setItem('mcp_servers', JSON.stringify(this.servers.map(({ status, ...s }) => s)));
   }
 
   async testConnection(id: string, options?: { timeout?: number; retries?: number }): Promise<{ success: boolean; message: string; diagnostics?: { timingMs: number; lastTool?: string } }> {
-    const { timeout = 5000, retries = 0 } = options || {};
+    const server = this.servers.find(s => s.id === id);
+    const timeout = options?.timeout ?? server?.settings?.timeout ?? 5000;
+    const maxRetries = options?.retries ?? server?.settings?.maxRetries ?? 0;
+    const backoffBase = server?.settings?.backoffBase ?? 500;
+    
     let attempts = 0;
-    const maxAttempts = retries + 1;
+    const totalMaxAttempts = maxRetries + 1;
 
-    while (attempts < maxAttempts) {
+    while (attempts < totalMaxAttempts) {
       const startTime = performance.now();
       const client = this.clients.get(id);
       if (!client) {
@@ -125,9 +140,9 @@ class MCPManager {
       } catch (error: any) {
         attempts++;
         const timingMs = Math.round(performance.now() - startTime);
-        console.error(`Connection test attempt ${attempts}/${maxAttempts} failed for ${id}:`, error);
+        console.error(`Connection test attempt ${attempts}/${totalMaxAttempts} failed for ${id}:`, error);
         
-        if (attempts >= maxAttempts) {
+        if (attempts >= totalMaxAttempts) {
           const result = { 
             success: false, 
             message: error.message || "Failed to communicate with MCP server.",
@@ -137,7 +152,7 @@ class MCPManager {
           return result;
         }
         
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 500));
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts - 1) * backoffBase));
       }
     }
 

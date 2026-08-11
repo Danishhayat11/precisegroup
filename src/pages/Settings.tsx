@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { useMCP } from "@/integrations/mcp/useMCP";
-import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock, Settings as SettingsIcon, Save } from "lucide-react";
 
 export default function Settings() {
   const { user, roles } = useAuth();
-  const { servers, addServer, removeServer, reconnect, testConnection } = useMCP();
+  const { servers, addServer, removeServer, reconnect, testConnection, updateSettings } = useMCP();
   
   // Form State
   const [newName, setNewName] = useState("");
@@ -19,6 +19,8 @@ export default function Settings() {
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, { loading: boolean; success?: boolean; message?: string; diagnostics?: { timingMs: number; lastTool?: string } }>>({});
+  const [editingServer, setEditingServer] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, any>>({});
 
   const { data: dealers = [] } = useQuery({ queryKey: ["s-dealers"], queryFn: async () => (await supabase.from("dealers").select("*")).data ?? [] });
   const { data: projects = [] } = useQuery({ queryKey: ["s-projects"], queryFn: async () => (await supabase.from("projects").select("*")).data ?? [] });
@@ -239,6 +241,16 @@ export default function Settings() {
                           <RefreshCw size={16} />
                         </button>
                         <button 
+                          onClick={() => {
+                            setEditingServer(editingServer === server.id ? null : server.id);
+                            setEditValues(server.settings || { timeout: 5000, maxRetries: 0, backoffBase: 500 });
+                          }}
+                          className={`p-2 rounded-md transition-colors ${editingServer === server.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                          title="Connection Settings"
+                        >
+                          <SettingsIcon size={16} />
+                        </button>
+                        <button 
                           onClick={() => removeServer(server.id)}
                           className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md text-muted-foreground transition-colors"
                           title="Disconnect & Remove"
@@ -247,6 +259,55 @@ export default function Settings() {
                         </button>
                       </div>
                     </div>
+                    {editingServer === server.id && (
+                      <div className="px-4 pb-4 animate-in zoom-in-95 duration-200">
+                        <div className="bg-muted/20 border rounded-lg p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                              <SettingsIcon size={12} /> Connection Settings
+                            </h4>
+                            <button 
+                              onClick={() => {
+                                updateSettings(server.id, editValues);
+                                setEditingServer(null);
+                              }}
+                              className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded font-bold hover:opacity-90 flex items-center gap-1"
+                            >
+                              <Save size={10} /> Save
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase font-bold text-muted-foreground">Timeout (ms)</label>
+                              <input 
+                                type="number" 
+                                className="w-full bg-background border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                                value={editValues.timeout ?? 5000}
+                                onChange={e => setEditValues(prev => ({ ...prev, timeout: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase font-bold text-muted-foreground">Max Retries</label>
+                              <input 
+                                type="number" 
+                                className="w-full bg-background border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                                value={editValues.maxRetries ?? 0}
+                                onChange={e => setEditValues(prev => ({ ...prev, maxRetries: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase font-bold text-muted-foreground">Backoff (ms)</label>
+                              <input 
+                                type="number" 
+                                className="w-full bg-background border rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
+                                value={editValues.backoffBase ?? 500}
+                                onChange={e => setEditValues(prev => ({ ...prev, backoffBase: parseInt(e.target.value) }))}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {testResults[server.id]?.message && (
                       <div className="px-14 pb-4 animate-in fade-in slide-in-from-top-1">
                         <div className={`text-[11px] flex items-center justify-between gap-4 mb-2 ${

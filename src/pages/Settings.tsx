@@ -293,7 +293,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function Row({ k, v }: { k: string; v: any }) {
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="flex justify-between py-2 text-sm border-b last:border-0 border-muted/50">
       <span className="text-muted-foreground">{k}</span>

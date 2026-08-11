@@ -18,7 +18,7 @@ export default function Settings() {
   // Validation State
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [testResults, setTestResults] = useState<Record<string, { loading: boolean; success?: boolean; message?: string }>>({});
+  const [testResults, setTestResults] = useState<Record<string, { loading: boolean; success?: boolean; message?: string; diagnostics?: { timingMs: number; lastTool?: string } }>>({});
 
   const { data: dealers = [] } = useQuery({ queryKey: ["s-dealers"], queryFn: async () => (await supabase.from("dealers").select("*")).data ?? [] });
   const { data: projects = [] } = useQuery({ queryKey: ["s-projects"], queryFn: async () => (await supabase.from("projects").select("*")).data ?? [] });
@@ -31,7 +31,7 @@ export default function Settings() {
     setTestResults(prev => ({ ...prev, [id]: { loading: true } }));
     try {
       const result = await testConnection(id, { timeout: 5000, retries });
-      setTestResults(prev => ({ ...prev, [id]: { loading: false, success: result.success, message: result.message } }));
+      setTestResults(prev => ({ ...prev, [id]: { loading: false, success: result.success, message: result.message, diagnostics: result.diagnostics } }));
       
       if (result.success) {
         // Clear message after 5 seconds for success
@@ -248,18 +248,46 @@ export default function Settings() {
                       </div>
                     </div>
                     {testResults[server.id]?.message && (
-                      <div className={`px-14 pb-3 text-[11px] animate-in fade-in slide-in-from-top-1 flex items-center justify-between gap-4 ${
-                        testResults[server.id]?.success ? 'text-green-600' : 'text-destructive'
-                      }`}>
-                        <span className="flex-1">{testResults[server.id]?.message}</span>
-                        {!testResults[server.id]?.success && !testResults[server.id]?.loading && (
-                          <button
-                            onClick={() => handleTest(server.id, 2)}
-                            className="text-[10px] font-bold uppercase tracking-wider bg-destructive/10 px-2 py-0.5 rounded hover:bg-destructive/20 transition-colors flex items-center gap-1"
-                          >
-                            <RefreshCw size={10} />
-                            Retry (3x)
-                          </button>
+                      <div className="px-14 pb-4 animate-in fade-in slide-in-from-top-1">
+                        <div className={`text-[11px] flex items-center justify-between gap-4 mb-2 ${
+                          testResults[server.id]?.success ? 'text-green-600' : 'text-destructive'
+                        }`}>
+                          <span className="flex-1 font-medium">{testResults[server.id]?.message}</span>
+                          {!testResults[server.id]?.success && !testResults[server.id]?.loading && (
+                            <button
+                              onClick={() => handleTest(server.id, 2)}
+                              className="text-[10px] font-bold uppercase tracking-wider bg-destructive/10 px-2 py-0.5 rounded hover:bg-destructive/20 transition-colors flex items-center gap-1"
+                            >
+                              <RefreshCw size={10} />
+                              Retry (3x)
+                            </button>
+                          )}
+                        </div>
+                        
+                        {testResults[server.id]?.diagnostics && (
+                          <div className="bg-muted/30 border rounded p-2 text-[10px] space-y-1 font-mono text-muted-foreground">
+                            <div className="flex justify-between border-b border-muted pb-1 mb-1">
+                              <span className="uppercase text-[9px] font-bold">Diagnostics Panel</span>
+                              <span className={testResults[server.id]?.success ? 'text-green-600' : 'text-destructive'}>
+                                {testResults[server.id]?.success ? 'PASSED' : 'FAILED'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Response Time:</span>
+                              <span className="text-foreground">{testResults[server.id]?.diagnostics?.timingMs}ms</span>
+                            </div>
+                            {testResults[server.id]?.diagnostics?.lastTool && (
+                              <div className="flex justify-between items-center">
+                                <span>Last Tool Found:</span>
+                                <span className="text-foreground">{testResults[server.id]?.diagnostics?.lastTool}</span>
+                              </div>
+                            )}
+                            {!testResults[server.id]?.success && (
+                              <div className="mt-1 pt-1 border-t border-muted/50 text-[9px] italic">
+                                Connection failed during capability exchange. Check server logs for details.
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}

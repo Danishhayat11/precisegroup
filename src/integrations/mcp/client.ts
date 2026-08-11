@@ -10,6 +10,10 @@ export interface MCPServer {
     timestamp: number;
     success: boolean;
     message: string;
+    diagnostics?: {
+      timingMs: number;
+      lastTool?: string;
+    };
   };
 }
 
@@ -90,40 +94,49 @@ class MCPManager {
     localStorage.setItem('mcp_servers', JSON.stringify(this.servers.map(({ status, ...s }) => s)));
   }
 
-  async testConnection(id: string, options?: { timeout?: number; retries?: number }): Promise<{ success: boolean; message: string }> {
+  async testConnection(id: string, options?: { timeout?: number; retries?: number }): Promise<{ success: boolean; message: string; diagnostics?: { timingMs: number; lastTool?: string } }> {
     const { timeout = 5000, retries = 0 } = options || {};
     let attempts = 0;
     const maxAttempts = retries + 1;
 
     while (attempts < maxAttempts) {
+      const startTime = performance.now();
       const client = this.clients.get(id);
       if (!client) {
         return { success: false, message: "Client not connected" };
       }
 
       try {
-        // Create a promise that rejects after timeout
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error("Connection test timed out")), timeout);
         });
 
-        // Race the tool listing against the timeout
-        await Promise.race([client.listTools(), timeoutPromise]);
+        const toolsResult = await Promise.race([client.listTools(), timeoutPromise]) as { tools: { name: string }[] };
+        const timingMs = Math.round(performance.now() - startTime);
+        const lastTool = toolsResult.tools?.[toolsResult.tools.length - 1]?.name;
         
-        const result = { success: true, message: "Successfully verified connection and capabilities." };
+        const result = { 
+          success: true, 
+          message: "Successfully verified connection and capabilities.",
+          diagnostics: { timingMs, lastTool }
+        };
         this.updateLastTest(id, result);
         return result;
       } catch (error: any) {
         attempts++;
+        const timingMs = Math.round(performance.now() - startTime);
         console.error(`Connection test attempt ${attempts}/${maxAttempts} failed for ${id}:`, error);
         
         if (attempts >= maxAttempts) {
-          const result = { success: false, message: error.message || "Failed to communicate with MCP server." };
+          const result = { 
+            success: false, 
+            message: error.message || "Failed to communicate with MCP server.",
+            diagnostics: { timingMs }
+          };
           this.updateLastTest(id, result);
           return result;
         }
         
-        // Wait briefly before retrying (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 500));
       }
     }
@@ -131,7 +144,7 @@ class MCPManager {
     return { success: false, message: "Maximum retry attempts reached." };
   }
 
-  private updateLastTest(id: string, result: { success: boolean; message: string }) {
+  private updateLastTest(id: string, result: { success: boolean; message: string; diagnostics?: { timingMs: number; lastTool?: string } }) {
     this.servers = this.servers.map(s => s.id === id ? { 
       ...s, 
       lastTest: { timestamp: Date.now(), ...result } 

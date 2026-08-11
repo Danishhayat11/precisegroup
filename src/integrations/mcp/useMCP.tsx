@@ -6,7 +6,7 @@ interface MCPContextType {
   addServer: (name: string, url: string) => Promise<void>;
   removeServer: (id: string) => Promise<void>;
   reconnect: (id: string) => Promise<void>;
-  testConnection: (id: string, options?: { timeout?: number; retries?: number }) => Promise<{ success: boolean; message: string }>;
+  testConnection: (id: string, options?: { timeout?: number; retries?: number }) => Promise<{ success: boolean; message: string; diagnostics?: { timingMs: number; lastTool?: string } }>;
 }
 
 const MCPContext = createContext<MCPContextType | undefined>(undefined);

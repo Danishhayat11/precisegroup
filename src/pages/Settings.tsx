@@ -270,8 +270,8 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card title="Projects">{projects.map((p: any) => <Row key={p.project_code} k={p.project_code} v={p.project_name} />)}</Card>
-        <Card title="Dealers">{dealers.map((d: any) => <Row key={d.name} k={d.name} v={null} />)}</Card>
+        <Card title="Projects">{projects.map((p) => <Row key={p.project_code} k={p.project_code} v={p.project_name} />)}</Card>
+        <Card title="Dealers">{dealers.map((d) => <Row key={d.name} k={d.name} v={null} />)}</Card>
         <Card title="Payment heads">{heads.map((h) => <Row key={h} k={h} v={null} />)}</Card>
         <Card title="Payment modes">{modes.map((m) => <Row key={m} k={m} v={null} />)}</Card>
         <Card title="Accounts">{accounts.map((a) => <Row key={a} k={a} v={null} />)}</Card>

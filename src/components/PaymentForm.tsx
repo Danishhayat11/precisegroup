@@ -231,7 +231,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       const cashTotal = rows.reduce((s: number, r) => s + (Number(r.safe_cash_amount) || 0), 0);
       const adjTotal = rows
         .filter((r) => r.payment_mode === "Adjustment/Asset" || r.non_cash_adjustment)
-        .reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0);
+        .reduce((s: number, r) => s + (Number(r.amount) || 0), 0);
       const prev = rows.find((r) => r.receipt_no === form.receipt_no) ?? null;
       return { cashTotal, adjTotal, prev };
     },
@@ -286,7 +286,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         .eq("id", prefillAuditId)
         .maybeSingle();
       if (cancelled || !data) return;
-      const after = (data.after ?? {}) as Record<string, any>;
+      const after = (data.after ?? {}) as Record<string, unknown>;
       setViewingAudit({
         id: data.id,
         actor_id: data.actor_id,
@@ -352,8 +352,8 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     ];
     const changed: Record<string, { from: any; to: any }> = {};
     for (const k of TRACKED) {
-      const a = (attempted as any)[k];
-      const b = (form as any)[k];
+      const a = attempted[k];
+      const b = form[k];
       const same =
         typeof a === "number" || typeof b === "number"
           ? Math.abs(Number(a || 0) - Number(b || 0)) < 0.005
@@ -405,7 +405,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     <SharedLockedTip
       locked={locked}
       failedCondition={blockedAudit?.failed_condition}
-      liveBlockStatus={liveBlockStatus as any}
+      liveBlockStatus={liveBlockStatus}
       field={field}
       note={note}
     >
@@ -421,7 +421,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
   // conversion). That exactly matches what the Postgres trigger will block.
   const invariantWouldFail = useMemo(() => {
     if (form.payment_mode !== "Adjustment/Asset") return false;
-    const prev = (totals as any)?.prev;
+    const prev = totals?.prev;
     if (!prev) return false;
     return Math.abs(Number(prev.safe_cash_amount) || 0) > 0.005;
   }, [form.payment_mode, totals]);

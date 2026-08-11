@@ -427,7 +427,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label>Status</Label>
-          <Select value={form.booking_status} onValueChange={(v) => set("booking_status", v as any)}>
+          <Select value={form.booking_status} onValueChange={(v) => set("booking_status", v as BookingFormValue["booking_status"])}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>

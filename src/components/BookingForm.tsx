@@ -136,7 +136,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
     setErrors((e) => ({ ...e, [k as string]: "" }));
   };
   const setNum = (k: keyof BookingFormValue) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    set(k, Number(e.target.value || 0) as any);
+    set(k, Number(e.target.value || 0) as BookingFormValue[typeof k]);
 
   const handleSave = async () => {
     const parsed = bookingSchema.safeParse(form);

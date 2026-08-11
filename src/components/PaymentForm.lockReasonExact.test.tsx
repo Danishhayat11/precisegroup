@@ -22,7 +22,7 @@ vi.mock("@/lib/audit", () => ({
   logPaymentUnlock: vi.fn(async () => null),
 }));
 vi.mock("@/integrations/supabase/client", () => {
-  const b: any = {};
+  const b: Record<string, any> = {};
   const p = () => b;
   b.select = p; b.eq = p; b.in = p; b.like = p; b.gte = p; b.lte = p;
   b.not = p; b.is = p; b.update = p; b.delete = p;
@@ -63,7 +63,7 @@ function renderForm(lockedReason: string) {
 }
 
 beforeEach(() => {
-  (Element.prototype as any).scrollIntoView = vi.fn();
+  (Element.prototype as unknown as { scrollIntoView: typeof vi.fn }).scrollIntoView = vi.fn();
 });
 afterEach(() => cleanup());
 

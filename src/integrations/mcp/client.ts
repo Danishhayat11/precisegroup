@@ -22,7 +22,7 @@ class MCPManager {
     const saved = localStorage.getItem('mcp_servers');
     if (saved) {
       try {
-        this.servers = JSON.parse(saved).map((s: any) => ({ ...s, status: 'disconnected' }));
+        this.servers = JSON.parse(saved).map((s: Record<string, unknown>) => ({ ...s, status: 'disconnected' }));
       } catch (e) {
         console.error('Failed to load MCP servers', e);
       }

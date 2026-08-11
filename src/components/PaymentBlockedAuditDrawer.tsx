@@ -21,7 +21,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   audit: PaymentBlockedAuditEntry | null;
   /** The payload the user attempted to save when the block happened. */
-  attempted: Record<string, any> | null;
+  attempted: Record<string, unknown> | null;
   /** Apply the suggested fix to the live Payment form and re-run validation. */
   onApplyFix?: (suggestion: PaymentFixSuggestion) => void;
 }
@@ -34,8 +34,8 @@ interface AuditRow {
   actor_id: string;
   actor_email: string | null;
   created_at: string;
-  before: Record<string, any> | null;
-  after: Record<string, any> | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
 }
 
 const DIFF_FIELDS: { key: string; label: string; kind?: "money" | "bool" | "text" }[] = [
@@ -50,14 +50,14 @@ const DIFF_FIELDS: { key: string; label: string; kind?: "money" | "bool" | "text
   { key: "booking_id", label: "Booking" },
 ];
 
-function fmt(v: any, kind?: "money" | "bool" | "text"): string {
+function fmt(v: unknown, kind?: "money" | "bool" | "text"): string {
   if (v === null || v === undefined || v === "") return "—";
   if (kind === "money") return fmtPKR(Number(v) || 0);
   if (kind === "bool") return v ? "true" : "false";
   return String(v);
 }
 
-function eq(a: any, b: any): boolean {
+function eq(a: unknown, b: unknown): boolean {
   if (a === null || a === undefined) a = "";
   if (b === null || b === undefined) b = "";
   if (typeof a === "number" || typeof b === "number") {
@@ -69,7 +69,7 @@ function eq(a: any, b: any): boolean {
 export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted, onApplyFix }: Props) {
   const [loading, setLoading] = useState(false);
   const [auditRow, setAuditRow] = useState<AuditRow | null>(null);
-  const [currentDb, setCurrentDb] = useState<Record<string, any> | null>(null);
+  const [currentDb, setCurrentDb] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!open || !audit) return;
@@ -91,7 +91,7 @@ export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted
         ]);
         if (!cancelled) {
           setAuditRow((aRes.data as AuditRow | null) ?? null);
-          setCurrentDb((pRes.data as Record<string, any> | null) ?? null);
+          setCurrentDb((pRes.data as Record<string, unknown> | null) ?? null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -103,7 +103,7 @@ export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted
   }, [open, audit]);
 
   const attemptedPayload =
-    attempted ?? (auditRow?.after as Record<string, any> | null) ?? null;
+    attempted ?? (auditRow?.after as Record<string, unknown> | null) ?? null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

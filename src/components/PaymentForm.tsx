@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { LockedTipLiveStatus } from "@/components/PaymentFormLockedTip";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -165,9 +166,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     receipt_no: initial?.receipt_no ?? "",
     booking_id: initial?.booking_id ?? "",
     payment_date: initial?.payment_date ?? format(new Date(), "yyyy-MM-dd"),
-    payment_mode: (initial?.payment_mode as any) ?? "Cash",
+    payment_mode: (initial?.payment_mode as PaymentFormValue["payment_mode"]) ?? "Cash",
     amount: Number(initial?.amount ?? 0),
-    payment_head: (initial?.payment_head as any) ?? "Installment",
+    payment_head: (initial?.payment_head as PaymentFormValue["payment_head"]) ?? "Installment",
     account: initial?.account ?? "",
     cheque_txn_no: initial?.cheque_txn_no ?? "",
     posted_by: initial?.posted_by ?? "",
@@ -177,7 +178,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
   const [saving, setSaving] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [blockedAudit, setBlockedAudit] = useState<PaymentBlockedAuditEntry | null>(null);
-  const [blockedPayload, setBlockedPayload] = useState<Record<string, any> | null>(null);
+  const [blockedPayload, setBlockedPayload] = useState<Partial<PaymentFormValue> | null>(null);
   const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
   const [viewingAudit, setViewingAudit] = useState<PaymentBlockedAuditEntry | null>(null);
   const paymentTypeRef = useRef<HTMLButtonElement>(null);
@@ -209,11 +210,11 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
           .eq("booking_id", form.booking_id),
       ]);
       const ledger = led ?? [];
-      const totalDue = ledger.reduce((s, r: any) => s + (Number(r.due_amount) || 0), 0);
-      const totalPaid = ledger.reduce((s, r: any) => s + (Number(r.paid_amount) || 0), 0);
-      const bookingPaid = (pays ?? []).reduce((s, r: any) => s + (Number(r.amount) || 0), 0);
-      const prevAmt = (pays ?? []).find((p: any) => p.receipt_no === form.receipt_no)?.amount ?? 0;
-      const nextDue = ledger.find((r: any) => (r.status || "").toLowerCase() !== "paid") ?? null;
+      const totalDue = ledger.reduce((s, r) => s + (Number(r.due_amount) || 0), 0);
+      const totalPaid = ledger.reduce((s, r) => s + (Number(r.paid_amount) || 0), 0);
+      const bookingPaid = (pays ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      const prevAmt = (pays ?? []).find((p) => p.receipt_no === form.receipt_no)?.amount ?? 0;
+      const nextDue = ledger.find((r) => (r.status || "").toLowerCase() !== "paid") ?? null;
       return { ledger, totalDue, totalPaid, bookingPaid, prevAmt: Number(prevAmt) || 0, nextDue };
     },
     staleTime: 5_000,
@@ -228,11 +229,11 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         .from("payments")
         .select("receipt_no,amount,safe_cash_amount,payment_mode,non_cash_adjustment");
       const rows = data ?? [];
-      const cashTotal = rows.reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      const cashTotal = rows.reduce((s: number, r) => s + (Number(r.safe_cash_amount) || 0), 0);
       const adjTotal = rows
-        .filter((r: any) => r.payment_mode === "Adjustment/Asset" || r.non_cash_adjustment)
-        .reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0);
-      const prev = rows.find((r: any) => r.receipt_no === form.receipt_no) ?? null;
+        .filter((r) => r.payment_mode === "Adjustment/Asset" || r.non_cash_adjustment)
+        .reduce((s: number, r) => s + (Number(r.amount) || 0), 0);
+      const prev = rows.find((r) => r.receipt_no === form.receipt_no) ?? null;
       return { cashTotal, adjTotal, prev };
     },
     staleTime: 5_000,
@@ -256,13 +257,13 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         .eq("action", "payment.save.blocked")
         .order("created_at", { ascending: false })
         .limit(20);
-      return (data ?? []) as Array<{
-        id: string;
-        actor_id: string;
-        actor_email: string | null;
-        created_at: string;
-        after: any;
-      }>;
+      return (data ?? []).map(r => ({
+        id: r.id,
+        actor_id: r.actor_id,
+        actor_email: r.actor_email,
+        created_at: r.created_at,
+        after: (r.after as Record<string, unknown>) ?? {}
+      }));
     },
     staleTime: 5_000,
   });
@@ -286,7 +287,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         .eq("id", prefillAuditId)
         .maybeSingle();
       if (cancelled || !data) return;
-      const after = (data.after ?? {}) as Record<string, any>;
+      const after = (data.after ?? {}) as Record<string, string>;
       setViewingAudit({
         id: data.id,
         actor_id: data.actor_id,
@@ -299,10 +300,10 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       setAuditDrawerOpen(true);
     })();
     return () => { cancelled = true; };
-  }, [prefillAuditId]);
+  }, [blockedAudit, blockedPayload, form, prefillAuditId]);
 
   const selectedBooking = useMemo(
-    () => bookings.find((b: any) => b.booking_id === form.booking_id),
+    () => bookings.find((b) => b.booking_id === form.booking_id),
     [bookings, form.booking_id]
   );
 
@@ -330,10 +331,10 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         payment_head: form.payment_head,
         receipt_no: form.receipt_no,
       },
-      attempted: blockedPayload as any,
-      prev: (totals as any)?.prev ?? null,
+      attempted: (blockedPayload as Record<string, unknown>) ?? {},
+      prev: (totals as Record<string, unknown>)?.prev ?? null,
       failedCondition: blockedAudit.failed_condition,
-    }) as any;
+    });
   }, [blockedAudit, blockedPayload, form, totals]);
 
   // Side-effect: once the live check says the condition is resolved, drop the
@@ -343,17 +344,17 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     if (!liveBlockStatus.active || liveBlockStatus.stillFails) return;
 
     const auditSnapshot = blockedAudit;
-    const attempted = blockedPayload ?? {};
+    const attempted = (blockedPayload ?? {}) as Record<string, unknown>;
     const TRACKED: Array<keyof PaymentFormValue> = [
       "payment_mode",
       "amount",
       "payment_head",
       "receipt_no",
     ];
-    const changed: Record<string, { from: any; to: any }> = {};
+    const changed: Record<string, { from: unknown; to: unknown }> = {};
     for (const k of TRACKED) {
-      const a = (attempted as any)[k];
-      const b = (form as any)[k];
+      const a = attempted[k];
+      const b = form[k];
       const same =
         typeof a === "number" || typeof b === "number"
           ? Math.abs(Number(a || 0) - Number(b || 0)) < 0.005
@@ -405,7 +406,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     <SharedLockedTip
       locked={locked}
       failedCondition={blockedAudit?.failed_condition}
-      liveBlockStatus={liveBlockStatus as any}
+      liveBlockStatus={liveBlockStatus as unknown as LockedTipLiveStatus}
       field={field}
       note={note}
     >
@@ -421,7 +422,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
   // conversion). That exactly matches what the Postgres trigger will block.
   const invariantWouldFail = useMemo(() => {
     if (form.payment_mode !== "Adjustment/Asset") return false;
-    const prev = (totals as any)?.prev;
+    const prev = totals?.prev;
     if (!prev) return false;
     return Math.abs(Number(prev.safe_cash_amount) || 0) > 0.005;
   }, [form.payment_mode, totals]);
@@ -470,12 +471,12 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         supabase.from("installment_ledger").select("paid_amount").eq("booking_id", form.booking_id),
         supabase.from("payments").select("safe_cash_amount").eq("booking_id", form.booking_id),
       ]);
-      cashBefore = (snap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
-      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: any) => s + (Number(r.paid_amount) || 0), 0);
-      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      cashBefore = (snap ?? []).reduce((s: number, r: Record<string, any>) => s + (Number(r.safe_cash_amount) || 0), 0);
+      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: Record<string, any>) => s + (Number(r.paid_amount) || 0), 0);
+      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: Record<string, any>) => s + (Number(r.safe_cash_amount) || 0), 0);
     }
 
-    const payload: any = {
+    const payload = {
       receipt_no: form.receipt_no,
       booking_id: form.booking_id,
       client_name: selectedBooking?.client_name ?? null,
@@ -502,7 +503,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
     if (error) {
       setSaving(false);
       const raw = error.message || "";
-      const mapped = mapPaymentError(error as any, { paymentMode: form.payment_mode });
+      const mapped = mapPaymentError(error as unknown as Record<string, unknown>, { paymentMode: form.payment_mode });
 
       if (mapped.isCashInvariant) {
         setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
@@ -534,7 +535,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       }
 
       if (Object.keys(mapped.fieldErrors).length) {
-        setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
+      setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
       }
       toast({
         variant: "destructive",

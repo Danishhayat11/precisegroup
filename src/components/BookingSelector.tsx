@@ -21,7 +21,7 @@ export interface BookingSummary {
   current_overdue_count: number;
   total_overdue_amount: number;
   risk_level: "LOW" | "MEDIUM" | "HIGH";
-  raw: Record<string, any>;
+  raw: Record<string, unknown>;
 }
 
 interface Props {
@@ -54,11 +54,11 @@ function toSummary(b: any): BookingSummary {
     current_overdue_count: overdue,
     total_overdue_amount: Number(b.total_overdue_amount ?? 0),
     risk_level: deriveRisk(overdue, b.risk_level),
-    raw: b,
+    raw: b as Record<string, unknown>,
   };
 }
 
-const RISK_STYLES: Record<RiskTone, { tone: string; label: string; icon: any }> = {
+const RISK_STYLES: Record<RiskTone, { tone: string; label: string; icon: React.ComponentType<{ className?: string }> }> = {
   LOW:    { tone: "bg-emerald-100 text-emerald-800 border-emerald-300",  label: "Low risk",    icon: ShieldAlert },
   MEDIUM: { tone: "bg-amber-100 text-amber-900 border-amber-300",        label: "Medium risk", icon: ShieldAlert },
   HIGH:   { tone: "bg-destructive/15 text-destructive border-destructive/40", label: "High risk", icon: AlertTriangle },
@@ -282,7 +282,7 @@ export function BookingSelector({ value, onChange }: Props) {
 function Stat({
   icon: Icon, label, value, sub, mono, tone = "default",
 }: {
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;

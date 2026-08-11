@@ -62,8 +62,8 @@ const defaultsFor = (initial?: Partial<BookingFormValue>): BookingFormValue => (
   booking_id: initial?.booking_id ?? "",
   booking_date: initial?.booking_date ?? format(new Date(), "yyyy-MM-dd"),
   unit_id: initial?.unit_id ?? "",
-  unit_type: (initial?.unit_type as any) ?? "Apartment",
-  floor: (initial?.floor as any) ?? "Ground",
+  unit_type: (initial?.unit_type as BookingFormValue["unit_type"]) ?? "Apartment",
+  floor: (initial?.floor as BookingFormValue["floor"]) ?? "Ground",
   size_sqft: Number(initial?.size_sqft ?? 0),
   client_name: initial?.client_name ?? "",
   so_wo: initial?.so_wo ?? "",
@@ -78,10 +78,10 @@ const defaultsFor = (initial?: Partial<BookingFormValue>): BookingFormValue => (
   adjustment_credit: Number(initial?.adjustment_credit ?? 0),
   possession_amount: Number(initial?.possession_amount ?? 0),
   no_of_installments: Number(initial?.no_of_installments ?? 0),
-  installment_frequency: (initial?.installment_frequency as any) ?? "Quarterly",
+  installment_frequency: (initial?.installment_frequency as BookingFormValue["installment_frequency"]) ?? "Quarterly",
   installment_amount: Number(initial?.installment_amount ?? 0),
   first_installment_due: initial?.first_installment_due ?? "",
-  booking_status: (initial?.booking_status as any) ?? "Active",
+  booking_status: (initial?.booking_status as BookingFormValue["booking_status"]) ?? "Active",
   notes: initial?.notes ?? "",
 });
 
@@ -136,7 +136,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
     setErrors((e) => ({ ...e, [k as string]: "" }));
   };
   const setNum = (k: keyof BookingFormValue) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    set(k, Number(e.target.value || 0) as any);
+    set(k, Number(e.target.value || 0) as BookingFormValue[typeof k]);
 
   const handleSave = async () => {
     const parsed = bookingSchema.safeParse(form);
@@ -244,14 +244,14 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
           </div>
           <div>
             <Label>Unit Type *</Label>
-            <Select value={form.unit_type} onValueChange={(v) => set("unit_type", v as any)}>
+            <Select value={form.unit_type} onValueChange={(v) => set("unit_type", v as BookingFormValue["unit_type"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{UNIT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
             <Label>Floor *</Label>
-            <Select value={form.floor} onValueChange={(v) => set("floor", v as any)}>
+            <Select value={form.floor} onValueChange={(v) => set("floor", v as BookingFormValue["floor"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{FLOORS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
             </Select>
@@ -375,7 +375,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
           </div>
           <div>
             <Label>Frequency</Label>
-            <Select value={form.installment_frequency} onValueChange={(v) => set("installment_frequency", v as any)}>
+            <Select value={form.installment_frequency} onValueChange={(v) => set("installment_frequency", v as BookingFormValue["installment_frequency"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{FREQUENCIES.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
             </Select>
@@ -427,7 +427,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label>Status</Label>
-          <Select value={form.booking_status} onValueChange={(v) => set("booking_status", v as any)}>
+          <Select value={form.booking_status} onValueChange={(v) => set("booking_status", v as BookingFormValue["booking_status"])}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>

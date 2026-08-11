@@ -270,8 +270,8 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card title="Projects">{projects.map((p: any) => <Row key={p.project_code} k={p.project_code} v={p.project_name} />)}</Card>
-        <Card title="Dealers">{dealers.map((d: any) => <Row key={d.name} k={d.name} v={null} />)}</Card>
+        <Card title="Projects">{projects.map((p) => <Row key={p.project_code} k={p.project_code} v={p.project_name} />)}</Card>
+        <Card title="Dealers">{dealers.map((d) => <Row key={d.name} k={d.name} v={null} />)}</Card>
         <Card title="Payment heads">{heads.map((h) => <Row key={h} k={h} v={null} />)}</Card>
         <Card title="Payment modes">{modes.map((m) => <Row key={m} k={m} v={null} />)}</Card>
         <Card title="Accounts">{accounts.map((a) => <Row key={a} k={a} v={null} />)}</Card>
@@ -280,7 +280,7 @@ export default function Settings() {
   );
 }
 
-function Card({ title, children }: { title: string; children: any }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="card-elevated flex flex-col h-full">
       <div className="px-5 py-4 border-b">
@@ -293,7 +293,7 @@ function Card({ title, children }: { title: string; children: any }) {
   );
 }
 
-function Row({ k, v }: { k: string; v: any }) {
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="flex justify-between py-2 text-sm border-b last:border-0 border-muted/50">
       <span className="text-muted-foreground">{k}</span>

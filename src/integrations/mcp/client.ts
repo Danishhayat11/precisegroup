@@ -31,6 +31,12 @@ export interface MCPServer {
     timestamp: number;
     diagnostics?: { timingMs: number; lastTool?: string };
   }>;
+  circuitBreaker?: {
+    failureCount: number;
+    isOpen: boolean;
+    openedAt?: number;
+    cooldownMs: number;
+  };
 }
 
 class MCPManager {
@@ -188,15 +194,30 @@ class MCPManager {
     const timestamp = Date.now();
     this.servers = this.servers.map(s => {
       if (s.id !== id) return s;
+      
       const history = [
         { ...result, timestamp },
         ...(s.testHistory || [])
-      ].slice(0, 10); // Keep last 10 tests
+      ].slice(0, 10);
+      
+      const cb = s.circuitBreaker || { failureCount: 0, isOpen: false, cooldownMs: 30000 };
+      let newCb = { ...cb };
+
+      if (result.success) {
+        newCb = { ...cb, failureCount: 0, isOpen: false, openedAt: undefined };
+      } else {
+        newCb.failureCount++;
+        if (newCb.failureCount >= 3) {
+          newCb.isOpen = true;
+          newCb.openedAt = timestamp;
+        }
+      }
       
       return { 
         ...s, 
         lastTest: { ...result, timestamp },
-        testHistory: history
+        testHistory: history,
+        circuitBreaker: newCb
       };
     });
     this.save();

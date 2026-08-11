@@ -282,7 +282,7 @@ export function BookingSelector({ value, onChange }: Props) {
 function Stat({
   icon: Icon, label, value, sub, mono, tone = "default",
 }: {
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;

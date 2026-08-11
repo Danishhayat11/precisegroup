@@ -286,7 +286,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         .eq("id", prefillAuditId)
         .maybeSingle();
       if (cancelled || !data) return;
-      const after = (data.after ?? {}) as Record<string, unknown>;
+      const after = (data.after ?? {}) as Record<string, string>;
       setViewingAudit({
         id: data.id,
         actor_id: data.actor_id,

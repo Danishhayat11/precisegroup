@@ -125,6 +125,7 @@ class MCPManager {
     const totalMaxAttempts = maxRetries + 1;
 
     while (attempts < totalMaxAttempts) {
+      this.updateRetryInfo(id, { attempt: attempts + 1, total: totalMaxAttempts });
       const startTime = performance.now();
       const client = this.clients.get(id);
       if (!client) {

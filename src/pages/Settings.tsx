@@ -220,6 +220,8 @@ export default function Settings() {
                         </div>
                       </div>
                       
+                      <RetryCountdown server={server} />
+
                       <div className="flex items-center gap-1">
                         <button 
                           onClick={() => handleTest(server.id)}

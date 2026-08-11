@@ -81,6 +81,22 @@ class MCPManager {
     localStorage.setItem('mcp_servers', JSON.stringify(this.servers.map(({ status, ...s }) => s)));
   }
 
+  async testConnection(id: string): Promise<{ success: boolean; message: string }> {
+    const client = this.clients.get(id);
+    if (!client) {
+      return { success: false, message: "Client not connected" };
+    }
+
+    try {
+      // Basic ping or capability check
+      await client.listTools();
+      return { success: true, message: "Successfully verified connection and capabilities." };
+    } catch (error: any) {
+      console.error(`Connection test failed for ${id}:`, error);
+      return { success: false, message: error.message || "Failed to communicate with MCP server." };
+    }
+  }
+
   getServers() {
     return [...this.servers];
   }

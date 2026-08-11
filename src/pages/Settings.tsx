@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { useMCP } from "@/integrations/mcp/useMCP";
-import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2 } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap } from "lucide-react";
 
 export default function Settings() {
   const { user, roles } = useAuth();
-  const { servers, addServer, removeServer, reconnect } = useMCP();
+  const { servers, addServer, removeServer, reconnect, testConnection } = useMCP();
   
   // Form State
   const [newName, setNewName] = useState("");
@@ -18,6 +18,7 @@ export default function Settings() {
   // Validation State
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [testResults, setTestResults] = useState<Record<string, { loading: boolean; success?: boolean; message?: string }>>({});
 
   const { data: dealers = [] } = useQuery({ queryKey: ["s-dealers"], queryFn: async () => (await supabase.from("dealers").select("*")).data ?? [] });
   const { data: projects = [] } = useQuery({ queryKey: ["s-projects"], queryFn: async () => (await supabase.from("projects").select("*")).data ?? [] });
@@ -25,6 +26,28 @@ export default function Settings() {
   const heads = ["Down Payment", "Installment 01-24", "Possession", "Adjustment Credit", "Other"];
   const modes = ["Cash", "Bank Transfer", "Cheque", "Online", "Adjustment", "Other"];
   const accounts = ["Cash in Hand", "Bank - HBL", "Bank - Meezan", "Bank - UBL", "Adjustment Account"];
+
+  const handleTest = async (id: string) => {
+    setTestResults(prev => ({ ...prev, [id]: { loading: true } }));
+    try {
+      const result = await testConnection(id);
+      setTestResults(prev => ({ ...prev, [id]: { loading: false, success: result.success, message: result.message } }));
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setTestResults(prev => {
+          const next = { ...prev };
+          if (next[id]) {
+            const { message, ...rest } = next[id];
+            next[id] = rest;
+          }
+          return next;
+        });
+      }, 5000);
+    } catch (err) {
+      setTestResults(prev => ({ ...prev, [id]: { loading: false, success: false, message: "Test failed unexpectedly" } }));
+    }
+  };
 
   const validateUrl = (url: string) => {
     try {
@@ -56,7 +79,6 @@ export default function Settings() {
 
     setIsValidating(true);
     try {
-      // In a real scenario, we might verify the API key or endpoint here
       await addServer(newName, newUrl);
       setNewName("");
       setNewUrl("");
@@ -74,13 +96,11 @@ export default function Settings() {
       <PageHeader title="Settings" description="Reference lists and your account" />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Account Info */}
         <Card title="Account">
           <Row k="Email" v={user?.email ?? "—"} />
           <Row k="Role" v={<span className="capitalize">{roles[0] ?? "viewer"}</span>} />
         </Card>
 
-        {/* MCP Setup UI */}
         <Card title="Agent Integrations (MCP)">
           <div className="space-y-6">
             <div className="bg-muted/30 border rounded-lg p-4">
@@ -159,47 +179,64 @@ export default function Settings() {
                   </div>
                 )}
                 {servers.map(server => (
-                  <div key={server.id} className="p-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${
-                        server.status === 'connected' ? 'bg-green-500/10 text-green-500' :
-                        server.status === 'error' ? 'bg-red-500/10 text-red-500' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
-                        {server.status === 'connected' ? <Power size={18} /> :
-                         server.status === 'error' ? <AlertCircle size={18} /> :
-                         <PowerOff size={18} className={server.status === 'connecting' ? 'animate-pulse' : ''} />}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold">{server.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold ${
-                            server.status === 'connected' ? 'bg-green-500/20 text-green-600' :
-                            'bg-muted text-muted-foreground'
-                          }`}>
-                            {server.status}
-                          </span>
+                  <div key={server.id} className="group">
+                    <div className="p-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-full ${
+                          server.status === 'connected' ? 'bg-green-500/10 text-green-500' :
+                          server.status === 'error' ? 'bg-red-500/10 text-red-500' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {server.status === 'connected' ? <Power size={18} /> :
+                           server.status === 'error' ? <AlertCircle size={18} /> :
+                           <PowerOff size={18} className={server.status === 'connecting' ? 'animate-pulse' : ''} />}
                         </div>
-                        <div className="text-xs text-muted-foreground font-mono mt-0.5">{server.url}</div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">{server.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full uppercase font-bold ${
+                              server.status === 'connected' ? 'bg-green-500/20 text-green-600' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {server.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono mt-0.5">{server.url}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleTest(server.id)}
+                          disabled={server.status !== 'connected' || testResults[server.id]?.loading}
+                          className="p-2 hover:bg-muted rounded-md text-muted-foreground transition-colors disabled:opacity-30"
+                          title="Test Connection"
+                        >
+                          {testResults[server.id]?.loading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                        </button>
+                        <button 
+                          onClick={() => reconnect(server.id)}
+                          className="p-2 hover:bg-muted rounded-md text-muted-foreground transition-colors"
+                          title="Reconnect / Refresh"
+                        >
+                          <RefreshCw size={16} />
+                        </button>
+                        <button 
+                          onClick={() => removeServer(server.id)}
+                          className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md text-muted-foreground transition-colors"
+                          title="Disconnect & Remove"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => reconnect(server.id)}
-                        className="p-2 hover:bg-muted rounded-md text-muted-foreground transition-colors"
-                        title="Reconnect / Refresh"
-                      >
-                        <RefreshCw size={16} />
-                      </button>
-                      <button 
-                        onClick={() => removeServer(server.id)}
-                        className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md text-muted-foreground transition-colors"
-                        title="Disconnect & Remove"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {testResults[server.id]?.message && (
+                      <div className={`px-14 pb-3 text-[11px] animate-in fade-in slide-in-from-top-1 ${
+                        testResults[server.id]?.success ? 'text-green-600' : 'text-destructive'
+                      }`}>
+                        {testResults[server.id]?.message}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -207,7 +244,6 @@ export default function Settings() {
           </div>
         </Card>
 
-        {/* Reference Lists */}
         <Card title="Projects">{projects.map((p: any) => <Row key={p.project_code} k={p.project_code} v={p.project_name} />)}</Card>
         <Card title="Dealers">{dealers.map((d: any) => <Row key={d.name} k={d.name} v={null} />)}</Card>
         <Card title="Payment heads">{heads.map((h) => <Row key={h} k={h} v={null} />)}</Card>

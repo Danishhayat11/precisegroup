@@ -38,22 +38,22 @@ const DOC_TYPES: DocType[] = [
 
 function buildTemplate(type: DocType, b: Record<string, unknown>, payments: Record<string, unknown>[] = [], ledger: Record<string, unknown>[] = []): string {
   const today = fmtDate(new Date().toISOString());
-  const client = (b.client_name ?? "").toString();
-  const unit = b.unit_id ?? "";
-  const project = b.project_name ?? "";
-  const cnic = b.cnic ?? "";
-  const so = b.so_wo ?? "";
-  const addr = b.address ?? "";
-  const sold = fmtPKR(b.sold_unit_value);
-  const dp = fmtPKR(b.down_payment);
-  const inst = fmtPKR(b.installment_amount);
-  const noInst = b.no_of_installments ?? "—";
-  const freq = b.installment_frequency ?? "Monthly";
-  const possAmt = fmtPKR(b.possession_amount);
-  const possDue = fmtDate(b.possession_due_date);
-  const remaining = fmtPKR(b.remaining_balance);
-  const overdueCount = b.current_overdue_count ?? 0;
-  const overdueAmt = fmtPKR(b.total_overdue_amount);
+  const client = String(b.client_name ?? "");
+  const unit = String(b.unit_id ?? "");
+  const project = String(b.project_name ?? "");
+  const cnic = String(b.cnic ?? "");
+  const so = String(b.so_wo ?? "");
+  const addr = String(b.address ?? "");
+  const sold = fmtPKR(Number(b.sold_unit_value) || 0);
+  const dp = fmtPKR(Number(b.down_payment) || 0);
+  const inst = fmtPKR(Number(b.installment_amount) || 0);
+  const noInst = String(b.no_of_installments ?? "—");
+  const freq = String(b.installment_frequency ?? "Monthly");
+  const possAmt = fmtPKR(Number(b.possession_amount) || 0);
+  const possDue = fmtDate(String(b.possession_due_date || ""));
+  const remaining = fmtPKR(Number(b.remaining_balance) || 0);
+  const overdueCount = Number(b.current_overdue_count) || 0;
+  const overdueAmt = fmtPKR(Number(b.total_overdue_amount) || 0);
   const lastPayment = payments[payments.length - 1];
 
   switch (type) {
@@ -116,7 +116,7 @@ We are pleased to confirm the provisional allotment of the following unit in you
   Unit No.          : ${unit}
   Type / Floor      : ${b.unit_type ?? "—"} / ${b.floor ?? "—"}
   Covered Area      : ${b.size_sqft ?? "—"} sqft
-  Sold Rate / sqft  : ${fmtPKR(b.sold_rate)}
+  Sold Rate / sqft  : ${fmtPKR(Number(b.sold_rate) || 0)}
   Sold Unit Value   : ${sold}
   Down Payment      : ${dp}
   Installments      : ${noInst} × ${inst} (${freq})
@@ -201,11 +201,11 @@ Authorised Signatory                 Allottee Signature`;
 PAYMENT RECEIPT
 
 Receipt No : ${r?.receipt_no ?? "—"}
-Date       : ${fmtDate(r?.payment_date ?? new Date().toISOString())}
+Date       : ${fmtDate(String(r?.payment_date ?? new Date().toISOString()))}
 Booking    : ${b.booking_id}
 
 Received with thanks from ${client} (CNIC: ${cnic}) the sum of
-${fmtPKR(r?.amount ?? 0)}
+${fmtPKR(Number(r?.amount) || 0)}
 on account of ${r?.payment_head ?? "—"} for Unit ${unit}, ${project}.
 
   Mode of Payment : ${r?.payment_mode ?? "—"}
@@ -214,8 +214,8 @@ on account of ${r?.payment_head ?? "—"} for Unit ${unit}, ${project}.
 
 Running Balance after this receipt:
   Total Sold Value : ${sold}
-  Cash Received    : ${fmtPKR(b.cash_received)}
-  Adj. Credit      : ${fmtPKR(b.adjustment_credit)}
+  Cash Received    : ${fmtPKR(Number(b.cash_received) || 0)}
+  Adj. Credit      : ${fmtPKR(Number(b.adjustment_credit) || 0)}
   Remaining        : ${remaining}
 
 For Precise Realtors & Builders (Pvt.) Ltd.
@@ -287,7 +287,7 @@ export default function BookingDocumentEditor({
 
   // Load draft (or fall back to template) whenever type changes
   useEffect(() => {
-    const k = storageKey(booking.booking_id, type);
+    const k = storageKey(String(booking.booking_id), type);
     const draft = localStorage.getItem(k);
     if (draft) {
       setText(draft);
@@ -301,7 +301,7 @@ export default function BookingDocumentEditor({
     }
   }, [type, booking.booking_id, baseTemplate]);
 
-  const docRef = `${booking.booking_id}/${type.replace(/\s+/g, "-")}`;
+  const docRef = `${String(booking.booking_id)}/${type.replace(/\s+/g, "-")}`;
 
   const handleReset = () => {
     setText(baseTemplate);
@@ -310,12 +310,12 @@ export default function BookingDocumentEditor({
       action: "document.draft.reset",
       documentType: type,
       referenceNo: docRef,
-      bookingId: booking.booking_id,
+      bookingId: String(booking.booking_id),
     });
   };
 
   const handleSave = () => {
-    const k = storageKey(booking.booking_id, type);
+    const k = storageKey(String(booking.booking_id), type);
     localStorage.setItem(k, text);
     const stamp = new Date().toISOString();
     localStorage.setItem(k + ":meta", JSON.stringify({ savedAt: stamp }));
@@ -325,7 +325,7 @@ export default function BookingDocumentEditor({
       action: "document.draft.save",
       documentType: type,
       referenceNo: docRef,
-      bookingId: booking.booking_id,
+      bookingId: String(booking.booking_id),
       extra: { length: text.length },
     });
   };
@@ -337,7 +337,7 @@ export default function BookingDocumentEditor({
       action: "document.print",
       documentType: type,
       referenceNo: docRef,
-      bookingId: booking.booking_id,
+      bookingId: String(booking.booking_id),
     });
   };
 
@@ -405,7 +405,7 @@ export default function BookingDocumentEditor({
               action: "document.draft.edit",
               documentType: type,
               referenceNo: docRef,
-              bookingId: booking.booking_id,
+              bookingId: String(booking.booking_id),
             });
           }}
 
@@ -421,7 +421,7 @@ export default function BookingDocumentEditor({
       <PrintPreviewModal
         open={previewOpen}
         onOpenChange={setPreviewOpen}
-        title={`${type} — ${booking.booking_id}`}
+        title={`${type} — ${String(booking.booking_id)}`}
         mode="text"
         body={printBody}
       />

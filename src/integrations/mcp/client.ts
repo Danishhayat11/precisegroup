@@ -61,9 +61,8 @@ class MCPManager {
         version: "1.0.0",
       }, {
         capabilities: {
-          prompts: {},
-          resources: {},
-          tools: {},
+          roots: { listChanged: true },
+          sampling: {}
         }
       });
 

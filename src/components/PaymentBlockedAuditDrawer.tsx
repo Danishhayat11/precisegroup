@@ -91,7 +91,7 @@ export function PaymentBlockedAuditDrawer({ open, onOpenChange, audit, attempted
         ]);
         if (!cancelled) {
           setAuditRow((aRes.data as AuditRow | null) ?? null);
-          setCurrentDb((pRes.data as Record<string, any> | null) ?? null);
+          setCurrentDb((pRes.data as Record<string, unknown> | null) ?? null);
         }
       } finally {
         if (!cancelled) setLoading(false);

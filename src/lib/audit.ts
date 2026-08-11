@@ -12,7 +12,7 @@ export interface DocAuditPayload {
   documentType: string;
   referenceNo?: string | null;
   bookingId?: string | null;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 /**
@@ -35,7 +35,7 @@ export async function logDocumentAction(p: DocAuditPayload): Promise<void> {
         .maybeSingle();
       if (prof) {
         actor_email = prof.email ?? actor_email;
-        full_name = (prof as any).full_name ?? null;
+        full_name = (prof as Record<string, unknown>).full_name as string ?? null;
       }
     } catch { /* ignore */ }
 

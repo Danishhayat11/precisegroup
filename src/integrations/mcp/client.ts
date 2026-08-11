@@ -22,7 +22,7 @@ class MCPManager {
     const saved = localStorage.getItem('mcp_servers');
     if (saved) {
       try {
-        this.servers = JSON.parse(saved).map((s: any) => ({ ...s, status: 'disconnected' }));
+        this.servers = JSON.parse(saved).map((s: Record<string, unknown>) => ({ ...s, status: 'disconnected' }));
       } catch (e) {
         console.error('Failed to load MCP servers', e);
       }
@@ -113,7 +113,7 @@ class MCPManager {
         const result = { success: true, message: "Successfully verified connection and capabilities." };
         this.updateLastTest(id, result);
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         attempts++;
         console.error(`Connection test attempt ${attempts}/${maxAttempts} failed for ${id}:`, error);
         

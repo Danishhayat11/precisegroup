@@ -471,9 +471,9 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
         supabase.from("installment_ledger").select("paid_amount").eq("booking_id", form.booking_id),
         supabase.from("payments").select("safe_cash_amount").eq("booking_id", form.booking_id),
       ]);
-      cashBefore = (snap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.safe_cash_amount) || 0), 0);
-      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.paid_amount) || 0), 0);
-      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.safe_cash_amount) || 0), 0);
+      cashBefore = (snap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
+      ledgerPaidBefore = (ledSnap ?? []).reduce((s: number, r: any) => s + (Number(r.paid_amount) || 0), 0);
+      bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: any) => s + (Number(r.safe_cash_amount) || 0), 0);
     }
 
     const payload = {
@@ -680,7 +680,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       // engage it for parent-driven locks so the existing blocked-audit
       // flow (which lets the user retype Type/Amount/Head to unlock)
       // continues to work.
-      {...(lockedByParent ? ({ inert: "" } as any) : {})}
+      {...(lockedByParent ? ({ inert: "" } as unknown as React.HTMLAttributes<HTMLDivElement>) : {})}
     >
 
 

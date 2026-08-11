@@ -476,7 +476,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       bookingCashBefore = (bkSnap ?? []).reduce((s: number, r: Record<string, unknown>) => s + (Number(r.safe_cash_amount) || 0), 0);
     }
 
-    const payload: any = {
+    const payload: Record<string, any> = {
       receipt_no: form.receipt_no,
       booking_id: form.booking_id,
       client_name: selectedBooking?.client_name ?? null,
@@ -535,7 +535,7 @@ export function PaymentForm({ initial, onSaved, onCancel, replayBlocked, prefill
       }
 
       if (Object.keys(mapped.fieldErrors).length) {
-        setErrors((e) => ({ ...e, ...mapped.fieldErrors }));
+      setErrors((e) => ({ ...e, ...mapped.fieldErrors } as Record<string, string>));
       }
       toast({
         variant: "destructive",

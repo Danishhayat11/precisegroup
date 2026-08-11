@@ -36,7 +36,7 @@ const DOC_TYPES: DocType[] = [
   "Payment Plan",
 ];
 
-function buildTemplate(type: DocType, b: any, payments: any[] = [], ledger: any[] = []): string {
+function buildTemplate(type: DocType, b: Record<string, any>, payments: any[] = [], ledger: any[] = []): string {
   const today = fmtDate(new Date().toISOString());
   const client = (b.client_name ?? "").toString();
   const unit = b.unit_id ?? "";

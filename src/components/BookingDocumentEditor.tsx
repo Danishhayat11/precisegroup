@@ -273,7 +273,7 @@ function storageKey(bookingId: string, type: DocType) {
 
 export default function BookingDocumentEditor({
   booking, payments, ledger,
-}: { booking: any; payments: any[]; ledger: any[] }) {
+}: { booking: Record<string, any>; payments: any[]; ledger: any[] }) {
   const [type, setType] = useState<DocType>("Allotment Letter");
   const baseTemplate = useMemo(() => buildTemplate(type, booking, payments, ledger), [type, booking, payments, ledger]);
   const [text, setText] = useState<string>(baseTemplate);

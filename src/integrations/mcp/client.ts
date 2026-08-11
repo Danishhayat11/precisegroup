@@ -60,9 +60,7 @@ class MCPManager {
         name: "Precise-Web-Client",
         version: "1.0.0",
       }, {
-        capabilities: {
-          roots: { listChanged: true }
-        }
+        capabilities: {}
       });
 
       await client.connect(transport);

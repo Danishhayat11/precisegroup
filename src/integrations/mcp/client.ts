@@ -11,6 +11,11 @@ export interface MCPServer {
     maxRetries?: number;
     backoffBase?: number;
   };
+  retryInfo?: {
+    attempt: number;
+    total: number;
+    nextRetryAt?: number;
+  };
   lastTest?: {
     timestamp: number;
     success: boolean;
@@ -95,6 +100,11 @@ class MCPManager {
     this.onUpdate([...this.servers]);
   }
 
+  private updateRetryInfo(id: string, retryInfo: MCPServer['retryInfo']) {
+    this.servers = this.servers.map(s => s.id === id ? { ...s, retryInfo } : s);
+    this.onUpdate([...this.servers]);
+  }
+
   updateSettings(id: string, settings: MCPServer['settings']) {
     this.servers = this.servers.map(s => s.id === id ? { ...s, settings } : s);
     this.save();
@@ -115,6 +125,7 @@ class MCPManager {
     const totalMaxAttempts = maxRetries + 1;
 
     while (attempts < totalMaxAttempts) {
+      this.updateRetryInfo(id, { attempt: attempts + 1, total: totalMaxAttempts });
       const startTime = performance.now();
       const client = this.clients.get(id);
       if (!client) {
@@ -136,6 +147,7 @@ class MCPManager {
           diagnostics: { timingMs, lastTool }
         };
         this.updateLastTest(id, result);
+        this.updateRetryInfo(id, undefined);
         return result;
       } catch (error: any) {
         attempts++;
@@ -143,6 +155,7 @@ class MCPManager {
         console.error(`Connection test attempt ${attempts}/${totalMaxAttempts} failed for ${id}:`, error);
         
         if (attempts >= totalMaxAttempts) {
+          this.updateRetryInfo(id, undefined);
           const result = { 
             success: false, 
             message: error.message || "Failed to communicate with MCP server.",
@@ -151,8 +164,14 @@ class MCPManager {
           this.updateLastTest(id, result);
           return result;
         }
-        
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts - 1) * backoffBase));
+
+        const delay = Math.pow(2, attempts - 1) * backoffBase;
+        this.updateRetryInfo(id, { 
+          attempt: attempts, 
+          total: totalMaxAttempts, 
+          nextRetryAt: Date.now() + delay 
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 

@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
+import { MCPProvider } from "@/integrations/mcp/useMCP";
 
 import AppShell from "@/components/AppShell";
 import Login from "@/pages/Login";
@@ -38,7 +39,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <MCPProvider>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
@@ -62,6 +64,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </MCPProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

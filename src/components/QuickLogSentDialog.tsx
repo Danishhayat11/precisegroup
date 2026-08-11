@@ -102,8 +102,9 @@ export default function QuickLogSentDialog({
       qc.invalidateQueries({ queryKey: ["booking-document-summaries"] });
       onSaved?.(row.id);
       onOpenChange(false);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Save failed", description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ variant: "destructive", title: "Save failed", description: message });
     } finally {
       setSaving(false);
     }

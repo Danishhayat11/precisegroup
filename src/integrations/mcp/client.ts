@@ -39,7 +39,11 @@ class MCPManager {
     const newServer: MCPServer = { id, name, url, status: 'disconnected' };
     this.servers.push(newServer);
     this.save();
-    this.connect(id);
+    await this.connect(id);
+    // Automatically test connection after initial connection attempt
+    if (this.servers.find(s => s.id === id)?.status === 'connected') {
+      await this.testConnection(id);
+    }
   }
 
   async removeServer(id: string) {

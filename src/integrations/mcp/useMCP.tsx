@@ -24,7 +24,7 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
       addServer: (name, url) => mcpManager.addServer(name, url),
       removeServer: (id) => mcpManager.removeServer(id),
       reconnect: (id) => mcpManager.connect(id),
-      testConnection: (id) => mcpManager.testConnection(id)
+      testConnection: (id, options) => mcpManager.testConnection(id, options)
     }}>
       {children}
     </MCPContext.Provider>

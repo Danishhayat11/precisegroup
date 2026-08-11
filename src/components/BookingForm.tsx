@@ -244,7 +244,7 @@ export function BookingForm({ initial, onSaved, onCancel }: BookingFormProps) {
           </div>
           <div>
             <Label>Unit Type *</Label>
-            <Select value={form.unit_type} onValueChange={(v) => set("unit_type", v as any)}>
+            <Select value={form.unit_type} onValueChange={(v) => set("unit_type", v as BookingFormValue["unit_type"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{UNIT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>

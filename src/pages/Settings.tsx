@@ -186,6 +186,14 @@ export default function Settings() {
                     
                     <div className="flex items-center gap-1">
                       <button 
+                        onClick={() => handleTest(server.id)}
+                        disabled={server.status !== 'connected' || testResults[server.id]?.loading}
+                        className="p-2 hover:bg-muted rounded-md text-muted-foreground transition-colors disabled:opacity-30"
+                        title="Test Connection"
+                      >
+                        {testResults[server.id]?.loading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                      </button>
+                      <button 
                         onClick={() => reconnect(server.id)}
                         className="p-2 hover:bg-muted rounded-md text-muted-foreground transition-colors"
                         title="Reconnect / Refresh"
@@ -201,7 +209,15 @@ export default function Settings() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  {testResults[server.id]?.message && (
+                    <div className={`px-4 pb-3 text-[11px] animate-in fade-in slide-in-from-top-1 ${
+                      testResults[server.id]?.success ? 'text-green-600' : 'text-destructive'
+                    }`}>
+                      {testResults[server.id]?.message}
+                    </div>
+                  )}
+                </>
+              ))}
               </div>
             </div>
           </div>

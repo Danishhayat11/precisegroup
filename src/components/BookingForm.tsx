@@ -78,7 +78,7 @@ const defaultsFor = (initial?: Partial<BookingFormValue>): BookingFormValue => (
   adjustment_credit: Number(initial?.adjustment_credit ?? 0),
   possession_amount: Number(initial?.possession_amount ?? 0),
   no_of_installments: Number(initial?.no_of_installments ?? 0),
-  installment_frequency: (initial?.installment_frequency as any) ?? "Quarterly",
+  installment_frequency: (initial?.installment_frequency as BookingFormValue["installment_frequency"]) ?? "Quarterly",
   installment_amount: Number(initial?.installment_amount ?? 0),
   first_installment_due: initial?.first_installment_due ?? "",
   booking_status: (initial?.booking_status as any) ?? "Active",

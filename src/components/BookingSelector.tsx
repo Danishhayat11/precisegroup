@@ -21,7 +21,7 @@ export interface BookingSummary {
   current_overdue_count: number;
   total_overdue_amount: number;
   risk_level: "LOW" | "MEDIUM" | "HIGH";
-  raw: Record<string, any>;
+  raw: Record<string, unknown>;
 }
 
 interface Props {

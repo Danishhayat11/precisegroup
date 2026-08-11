@@ -50,7 +50,7 @@ const DIFF_FIELDS: { key: string; label: string; kind?: "money" | "bool" | "text
   { key: "booking_id", label: "Booking" },
 ];
 
-function fmt(v: any, kind?: "money" | "bool" | "text"): string {
+function fmt(v: unknown, kind?: "money" | "bool" | "text"): string {
   if (v === null || v === undefined || v === "") return "—";
   if (kind === "money") return fmtPKR(Number(v) || 0);
   if (kind === "bool") return v ? "true" : "false";

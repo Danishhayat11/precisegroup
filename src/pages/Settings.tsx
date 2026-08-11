@@ -280,7 +280,7 @@ export default function Settings() {
   );
 }
 
-function Card({ title, children }: { title: string; children: any }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="card-elevated flex flex-col h-full">
       <div className="px-5 py-4 border-b">

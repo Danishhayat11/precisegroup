@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/lib/auth";
 import { useMCP } from "@/integrations/mcp/useMCP";
-import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Server, AlertCircle, CheckCircle2, Shield, Power, PowerOff, Loader2, Zap, Clock } from "lucide-react";
 
 export default function Settings() {
   const { user, roles } = useAuth();
@@ -201,7 +201,18 @@ export default function Settings() {
                               {server.status}
                             </span>
                           </div>
-                          <div className="text-xs text-muted-foreground font-mono mt-0.5">{server.url}</div>
+                          <div className="text-xs text-muted-foreground font-mono mt-0.5 truncate max-w-[200px]">{server.url}</div>
+                          {server.lastTest && (
+                            <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${
+                              server.lastTest.success ? 'text-green-600/70' : 'text-destructive/70'
+                            }`}>
+                              <Clock size={10} />
+                              <span>Last test: {new Date(server.lastTest.timestamp).toLocaleTimeString()}</span>
+                              {!server.lastTest.success && (
+                                <span className="italic truncate max-w-[150px]"> — {server.lastTest.message}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       

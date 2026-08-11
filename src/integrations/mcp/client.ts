@@ -6,6 +6,11 @@ export interface MCPServer {
   name: string;
   url: string;
   status: 'connected' | 'disconnected' | 'connecting' | 'error';
+  lastTest?: {
+    timestamp: number;
+    success: boolean;
+    message: string;
+  };
 }
 
 class MCPManager {
@@ -90,11 +95,24 @@ class MCPManager {
     try {
       // Basic ping or capability check
       await client.listTools();
-      return { success: true, message: "Successfully verified connection and capabilities." };
+      const result = { success: true, message: "Successfully verified connection and capabilities." };
+      this.updateLastTest(id, result);
+      return result;
     } catch (error: any) {
       console.error(`Connection test failed for ${id}:`, error);
-      return { success: false, message: error.message || "Failed to communicate with MCP server." };
+      const result = { success: false, message: error.message || "Failed to communicate with MCP server." };
+      this.updateLastTest(id, result);
+      return result;
     }
+  }
+
+  private updateLastTest(id: string, result: { success: boolean; message: string }) {
+    this.servers = this.servers.map(s => s.id === id ? { 
+      ...s, 
+      lastTest: { timestamp: Date.now(), ...result } 
+    } : s);
+    this.save();
+    this.onUpdate([...this.servers]);
   }
 
   getServers() {
